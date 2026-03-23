@@ -58,6 +58,10 @@ const unsigned NUM_TRACKS = 32;         ///< Number of tracks per disk.
 const unsigned NUM_SECTORS = SECTORS_PER_TRACK * NUM_TRACKS;
   ///< Total # of sectors per disk.
 
+const unsigned MAGIC_SIZE = sizeof (int);
+const unsigned DISK_SIZE = MAGIC_SIZE + NUM_SECTORS * SECTOR_SIZE;
+
+
 class Disk {
 public:
     /// Create a simulated disk.
