@@ -23,11 +23,11 @@ bool thread2Done = false;
 
 #ifdef SEMAPHORE_TEST
 Semaphore *sem = new Semaphore("Simple test",NUM_SEM);
+#endif
 
 bool thread3Done = false;
 bool thread4Done = false;
 bool thread5Done = false;
-#endif
 
 
 void
@@ -40,26 +40,24 @@ SimpleThread(void *name_)
     for (unsigned num = 0; num < 10; num++) {
         
 				#ifdef SEMAPHORE_TEST 
-				DEBUG('t', "%s realizo P\n", currentThread->GetName());
-				sem -> P();
+					DEBUG('t', "%s realizo P\n", currentThread->GetName());
+					sem -> P();
 				#endif
         printf("*** Thread `%s` is running: iteration %u\n", currentThread->GetName(), num);
         #ifdef SEMAPHORE_TEST 
-				DEBUG('t', "%s realizo V\n", currentThread->GetName());
-				sem -> V();
+					DEBUG('t', "%s realizo V\n", currentThread->GetName());
+					sem -> V();
 				#endif
         currentThread->Yield();
     }
     if (strcmp(currentThread->GetName(),"2nd")==0) 
 			thread2Done = true;
-		#ifdef SEMAPHORE_TEST
 		if (strcmp(currentThread->GetName(),"3rd")==0) 
 			thread3Done = true;
 		if (strcmp(currentThread->GetName(),"4th")==0) 
 			thread4Done = true;
 		if (strcmp(currentThread->GetName(),"5th")==0) 
 			thread5Done = true;
-		#endif
     
     printf("!!! Thread `%s` has finished SimpleThread\n", currentThread->GetName());
  
@@ -85,15 +83,9 @@ ThreadTestSimple()
     SimpleThread(NULL);
 
    //Wait for the 2nd thread to finish if needed
-    while (!thread2Done) {
+    while (!thread2Done && !thread3Done && !thread4Done && !thread5Done) {
         currentThread->Yield(); 
     }
-		#ifdef SEMAPHORE_TEST
-		while (!thread3Done && !thread4Done && !thread5Done) {
-        currentThread->Yield(); 
-    }
-		
-		#endif
 
     printf("Test finished\n");
 }
