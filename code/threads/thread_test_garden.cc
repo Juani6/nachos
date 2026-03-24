@@ -7,6 +7,7 @@
 
 #include "thread_test_garden.hh"
 #include "system.hh"
+#include "semaphore.hh"
 
 #include <stdio.h>
 
@@ -23,11 +24,31 @@ Turnstile(void *n_)
 
     for (unsigned i = 0; i < ITERATIONS_PER_TURNSTILE; i++) {
         int temp = count;
-        printf("Turnstile %u yielding with temp=%u.\n", *n, temp);
-        currentThread->Yield();
+        //printf("Turnstile %u yielding with temp=%u.\n", *n, temp);
+        //currentThread->Yield();
         printf("Turnstile %u back with temp=%u.\n", *n, temp);
         count = temp + 1;
         currentThread->Yield();
+    }
+    printf("Turnstile %u finished. Count is now %u.\n", *n, count);
+    done[*n] = true;
+}
+
+
+// EJ 18
+Semaphore* sema = new Semaphore("Garden",1); 
+static void
+TurnstileSem(void *n_)
+{
+    unsigned *n = (unsigned *) n_;
+
+    for (unsigned i = 0; i < ITERATIONS_PER_TURNSTILE; i++) {
+        sema -> P();
+        int temp = count;
+        printf("Turnstile %u back with temp=%u.\n", *n, temp);
+        count = temp + 1;
+        sema -> V();
+				currentThread->Yield();
     }
     printf("Turnstile %u finished. Count is now %u.\n", *n, count);
     done[*n] = true;
@@ -48,7 +69,8 @@ ThreadTestGarden()
         printf("Name: %s\n", names[i]);
         values[i] = i;
         Thread *t = new Thread(names[i]);
-        t->Fork(Turnstile, (void *) &(values[i]));
+      //  t->Fork(Turnstile, (void *) &(values[i]));
+				t->Fork(TurnstileSem, (void *) &(values[i]));
     }
    
     // Wait until all turnstile threads finish their work.  `Thread::Join` is
