@@ -40,6 +40,7 @@ static void Prod(void* i){
         currentThread->Yield();
     }
     done [CONS + *n ] = true;
+		return;
 }
 
 
@@ -58,6 +59,7 @@ static void Cons(void* i){
         
     }
     done[*n] = true;
+		return;
 }
 
 void
@@ -69,12 +71,12 @@ ThreadTestProdCons()
     char** nameC = new char*[CONS];
 		char** nameP = new char* [PROD];
     for (int i=0;i<CONS;i++){
-        nameC[i] = new char(20);
-        sprintf(nameC[i],"Cons:%d",i);
+        nameC[i] = new char[20];
+        snprintf(nameC[i],20,"Cons:%d",i);
     }
     for (int i=0;i<PROD;i++){
-        nameP[i] = new char (20);
-        sprintf(nameP[i],"Prod:%d",i);
+        nameP[i] = new char[20];
+        snprintf(nameP[i],20,"Prod:%d",i);
     }
 
     for(int i = 0;i<CONS;i++){
