@@ -13,6 +13,13 @@
 ///               2016-2021 Docentes de la Universidad Nacional de Rosario.
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
+#ifndef NACHOS_THREADS_SEMAPHORE__HH
+#include "semaphore.hh"
+#endif
+
+#ifndef NACHOS_THREADS_THREAD__HH
+#include "thread.hh"
+#endif
 
 #ifndef NACHOS_THREADS_LOCK__HH
 #define NACHOS_THREADS_LOCK__HH
@@ -56,6 +63,13 @@ private:
 
     /// For debugging.
     const char *name;
+
+    //Binary Semaphore for locking the thread
+    Semaphore* sem;
+
+    //A pointer to the current thread holding the Lock or NULL if non is holding
+    Thread* holderThread;
+
 
     // Add other needed fields here.
 };

@@ -48,7 +48,7 @@ TurnstileSem(void *n_)
         printf("Turnstile %u back with temp=%u.\n", *n, temp);
         count = temp + 1;
         sema -> V();
-				currentThread->Yield();
+		currentThread->Yield();
     }
     printf("Turnstile %u finished. Count is now %u.\n", *n, count);
     done[*n] = true;
@@ -69,8 +69,8 @@ ThreadTestGarden()
         printf("Name: %s\n", names[i]);
         values[i] = i;
         Thread *t = new Thread(names[i]);
-      //  t->Fork(Turnstile, (void *) &(values[i]));
-				t->Fork(TurnstileSem, (void *) &(values[i]));
+        //t->Fork(Turnstile, (void *) &(values[i]));
+		t->Fork(TurnstileSem, (void *) &(values[i]));
     }
    
     // Wait until all turnstile threads finish their work.  `Thread::Join` is
