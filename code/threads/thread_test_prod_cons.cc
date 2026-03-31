@@ -67,11 +67,11 @@ ThreadTestProdCons()
     int* valuesC = new int [CONS];
     int* valuesP = new int [PROD];
     char** nameC = new char*[CONS];
+		char** nameP = new char* [PROD];
     for (int i=0;i<CONS;i++){
         nameC[i] = new char(20);
         sprintf(nameC[i],"Cons:%d",i);
     }
-    char** nameP = new char* [PROD];
     for (int i=0;i<PROD;i++){
         nameP[i] = new char (20);
         sprintf(nameP[i],"Prod:%d",i);
@@ -97,4 +97,12 @@ ThreadTestProdCons()
     printf("Total :%d\n",cant_total);
 
     delete lock;
+		for (unsigned i = 0; i < CONS; i++)
+			delete[] nameC[i];
+		for (unsigned i = 0; i < PROD; i++)
+			delete[] nameP[i];
+		delete[] valuesC;
+		delete[] valuesP;
+		delete[] nameC;
+		delete[] nameP;
 }
