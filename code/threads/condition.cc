@@ -23,12 +23,17 @@
 
 Condition::Condition(const char *debugName, Lock *conditionLock)
 {
-    // TODO
+	name = debugName;
+	externalLock = conditionLock;
+	internalLock = new Lock("internalConditionLock");
+	internalSem = new Semaphore("conditionSem", 1);
+	waiters = 0;
 }
 
 Condition::~Condition()
 {
-    // TODO
+  delete internalLock;
+	delete internalSem;
 }
 
 const char *
@@ -40,17 +45,29 @@ Condition::GetName() const
 void
 Condition::Wait()
 {
-    // TODO
+  internalLock->Acquire();
+	waiters++;
+	internalLock->Release();
+	
+	externalLock->Release();
+	internalSem->P();
+	externalLock->Acquire();
 }
 
 void
 Condition::Signal()
 {
-    // TODO
+  internalLock->Acquire();
+	internalSem->V();
+	waiters--;
+	internalLock->Release();
 }
 
 void
 Condition::Broadcast()
 {
-    // TODO
+	internalLock->Acquire();
+	for(; waiters > 0; waiters--)
+		internalSem->V();
+	internalLock->Release();
 }

@@ -17,7 +17,7 @@
 #ifndef NACHOS_THREADS_CONDITION__HH
 #define NACHOS_THREADS_CONDITION__HH
 
-
+#include "semaphore.hh"
 #include "lock.hh"
 
 
@@ -75,8 +75,11 @@ public:
 private:
 
     const char *name;
-
     // Other needed fields are to be added here.
+		unsigned waiters;
+		Semaphore *internalSem;
+		Lock *internalLock;
+		Lock *externalLock;
 };
 
 
