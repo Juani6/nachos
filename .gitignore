@@ -37,3 +37,5 @@
 /documentation/**/*-converted-to.*
 # Ignorar txts en carpeta de código
 /code/**/*.txt
+#Ignorar txt de la plancha1
+./plancha1.txt
