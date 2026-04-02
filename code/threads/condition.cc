@@ -52,14 +52,18 @@ Condition::Wait()
 	externalLock->Release();
 	internalSem->P();
 	externalLock->Acquire();
+
+	internalLock->Acquire();
+	waiters--;
+	internalLock->Release();
 }
 
 void
 Condition::Signal()
 {
   internalLock->Acquire();
-	internalSem->V();
-	waiters--;
+	if (waiters > 0)
+		internalSem->V();
 	internalLock->Release();
 }
 
@@ -67,7 +71,7 @@ void
 Condition::Broadcast()
 {
 	internalLock->Acquire();
-	for(; waiters > 0; waiters--)
+	for(int i = 0; i < waiters; i++)
 		internalSem->V();
 	internalLock->Release();
 }

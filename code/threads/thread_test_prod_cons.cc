@@ -13,11 +13,11 @@
 #include "system.hh"
 #include <string.h>
 
-#define SIZE_BUFFER  3
+#define SIZE_BUFFER 3
 #define TOTAL  1000
 
-#define SIZE_CONS  4
-#define SIZE_PROD  4
+#define SIZE_CONS 1
+#define SIZE_PROD 1
 
 int Buffer [SIZE_BUFFER];
 int cant_elem  = 0;
@@ -25,26 +25,34 @@ bool done [SIZE_CONS + SIZE_PROD];
 int cant_total = 0;
 Lock* lock     = new Lock("ProdCons");
 Condition* fullBufferLock	 = new Condition("fullBufferLock", lock);
-Condition* AvailableBufferLock  = new Condition("cantFree", lock);
+Condition* notEmptyBufferLock  = new Condition("cantFree", lock);
 
 static void Prod(void* i){
     const int *n = (int*) i;
+	lock->Acquire();
     while(cant_total < TOTAL){
-
-        lock->Acquire();
-        printf("Produciendo %s....\n",currentThread->GetName());
-		while (cant_elem == SIZE_BUFFER)
-            fullBufferLock->Wait();
-
-        Buffer[cant_elem] = cant_elem;
-        cant_elem++;
 		
-        AvailableBufferLock->Signal();
-        //printf("Producido :)\n");
-        cant_total++;
+		while (cant_elem == SIZE_BUFFER) {
+			printf("Productor esperando (buffer lleno)\n");
+			fullBufferLock->Wait();
+		}
+		if (cant_total < TOTAL) {
+
+			
+			Buffer[cant_elem] = cant_total;
+			cant_elem++;
+			cant_total++;
+			printf("Productor produce: [%s] en %d\n", currentThread->GetName(), cant_total);
+			
+			notEmptyBufferLock->Broadcast();
+			
+		}
         lock->Release();
         currentThread->Yield();
+		lock->Acquire();
     }
+	notEmptyBufferLock->Broadcast();
+	lock->Release();
     done [SIZE_CONS + *n ] = true;
 		return;
 }
@@ -54,22 +62,26 @@ static void Cons(void* i){
     const int *n = (int*) i;
 
 
+	lock->Acquire();
+
     while(cant_total < TOTAL){
         
-        lock->Acquire();
-        while (cant_elem == 0)
-            AvailableBufferLock->Wait();
-        printf("ÑamÑamÑam %s\n",currentThread->GetName());
-        printf("Consumi: %d\n",Buffer[cant_elem-1]);
+        while (cant_elem == 0 && cant_total < TOTAL) {
+			printf("Consumidor esperando (buffer vacio)\n");
+			notEmptyBufferLock->Wait();
+		}
+		printf("Consumidor consume: [%s] en %d\n", currentThread->GetName(), cant_total);
         cant_elem--;
-        fullBufferLock->Signal();
+        fullBufferLock->Broadcast();
         
         lock->Release();
         currentThread->Yield();
-        
+		lock->Acquire();
     }
+	notEmptyBufferLock->Broadcast();
+	lock->Release();
     done[*n] = true;
-		return;
+	return;
 }
 
 void
@@ -117,6 +129,6 @@ ThreadTestProdCons()
     delete[] nameC;
     delete[] nameP;
     delete fullBufferLock;
-    delete AvailableBufferLock;
+    delete notEmptyBufferLock;
     delete lock;
 }
