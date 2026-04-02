@@ -59,6 +59,7 @@ ThreadTestProdConsChannels()
     int* valuesP = new int [SIZE_PROD];
     char** nameC = new char*[SIZE_CONS];
 		char** nameP = new char* [SIZE_PROD];
+		Thread *threadArray[SIZE_PROD + SIZE_CONS];
     
 		for (int i=0;i<SIZE_CONS;i++){
         nameC[i] = new char[20];
@@ -73,20 +74,18 @@ ThreadTestProdConsChannels()
     for(int i = 0;i<SIZE_CONS;i++){
         valuesC[i]=i;
         DEBUG('s',"i=%d\n",i);
-        Thread* t = new Thread(nameC[i],0);
-        t->Fork(Cons,(void*) &(valuesC[i]));
+        threadArray[i] = new Thread(nameC[i],1);
+        threadArray[i]->Fork(Cons,(void*) &(valuesC[i]));
     }
     
 		for(int i = 0;i<SIZE_PROD;i++){
         valuesP[i] = i;
-        Thread* t = new Thread( nameP[i],0);
-        t->Fork(Prod,(void*) &(valuesP[i]));
+        threadArray[SIZE_CONS + i] = new Thread( nameP[i],1);
+        threadArray[SIZE_CONS + i]->Fork(Prod,(void*) &(valuesP[i]));
     }
 
     for (int i=0; i<(SIZE_CONS + SIZE_PROD); i++){
-        while(!done[i]){
-            currentThread->Yield();
-        }
+        threadArray[i]->Join();
     }
 
     for (unsigned i = 0; i < SIZE_CONS; i++)
@@ -97,5 +96,6 @@ ThreadTestProdConsChannels()
     delete[] valuesP;
     delete[] nameC;
     delete[] nameP;
+		//delete[] threadArray;
     delete ch;
 }
