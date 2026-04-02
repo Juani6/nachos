@@ -19,8 +19,10 @@
 #ifndef NACHOS_THREADS_SEMAPHORE__HH
 #define NACHOS_THREADS_SEMAPHORE__HH
 
-
+#ifndef NACHOS_THREADS_THREAD__HH
 #include "thread.hh"
+#endif
+
 #include "lib/list.hh"
 
 

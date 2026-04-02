@@ -62,26 +62,33 @@ ThreadTestGarden()
 
     char **names = new char*[NUM_TURNSTILES];
     unsigned *values = new unsigned[NUM_TURNSTILES];
+    Thread* t [NUM_TURNSTILES];
     for (unsigned i = 0; i < NUM_TURNSTILES; i++) {
         printf("Launching turnstile %u.\n", i);
         names[i] = new char[16];
         sprintf(names[i], "Turnstile %u", i);
         printf("Name: %s\n", names[i]);
         values[i] = i;
-        Thread *t = new Thread(names[i]);
+        t[i] = new Thread(names[i],1);
         //t->Fork(Turnstile, (void *) &(values[i]));
-		t->Fork(TurnstileSem, (void *) &(values[i]));
+		t[i]->Fork(TurnstileSem, (void *) &(values[i]));
     }
    
     // Wait until all turnstile threads finish their work.  `Thread::Join` is
     // not implemented at the beginning, therefore an ad-hoc workaround is
     // applied here.
+    
+    //TEST PARA JOIN
+    for(unsigned i=0;i<NUM_TURNSTILES;i++)
+        t[i]->Join();
+    
+    /* 
     for (unsigned i = 0; i < NUM_TURNSTILES; i++) {
         while (!done[i]) {
             currentThread->Yield();
         }
     }
-
+    */
     printf("All turnstiles finished. Final count is %u (should be %u).\n",
            count, ITERATIONS_PER_TURNSTILE * NUM_TURNSTILES);
 

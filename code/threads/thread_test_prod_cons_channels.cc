@@ -73,13 +73,13 @@ ThreadTestProdConsChannels()
     for(int i = 0;i<SIZE_CONS;i++){
         valuesC[i]=i;
         DEBUG('s',"i=%d\n",i);
-        Thread* t = new Thread(nameC[i]);
+        Thread* t = new Thread(nameC[i],0);
         t->Fork(Cons,(void*) &(valuesC[i]));
     }
     
 		for(int i = 0;i<SIZE_PROD;i++){
         valuesP[i] = i;
-        Thread* t = new Thread( nameP[i] );
+        Thread* t = new Thread( nameP[i],0);
         t->Fork(Prod,(void*) &(valuesP[i]));
     }
 

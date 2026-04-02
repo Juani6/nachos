@@ -48,6 +48,9 @@
 
 #include <stdint.h>
 
+/// EJ 4 Plancha 2
+/// Clase Channel definida en channel.hh
+class Channel;
 
 /// CPU register state to be saved on context switch.
 ///
@@ -97,7 +100,7 @@ private:
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName);
+    Thread(const char *debugName,bool join);
 
     /// Deallocate a Thread.
     ///
@@ -127,6 +130,9 @@ public:
     const char *GetName() const;
 
     void Print() const;
+    
+    /// EJ 4 Plancha 2
+    void Join();
 
 private:
     // Some of the private data for this class is listed above.
@@ -140,6 +146,11 @@ private:
     ThreadStatus status;
 
     const char *name;
+
+    /// EJ 4 Plancha 2
+    bool isJoinable;
+    Channel* pipe;
+    /// EJ 4 Plancha 2
 
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);

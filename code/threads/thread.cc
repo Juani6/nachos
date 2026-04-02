@@ -24,6 +24,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#include "channels.hh"
+
 
 /// This is put at the top of the execution stack, for detecting stack
 /// overflows.
@@ -40,12 +42,19 @@ IsThreadStatus(ThreadStatus s)
 /// `Thread::Fork`.
 ///
 /// * `threadName` is an arbitrary string, useful for debugging.
-Thread::Thread(const char *threadName)
+Thread::Thread(const char *threadName,bool join)
 {
     name     = threadName;
     stackTop = nullptr;
     stack    = nullptr;
     status   = JUST_CREATED;
+    /// EJ 4 Plancha 2
+
+    isJoinable = join;
+    if(isJoinable)
+        pipe = new Channel("Pipe");
+    // EJ 4
+
 #ifdef USER_PROGRAM
     space    = nullptr;
 #endif
@@ -63,6 +72,9 @@ Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
+    /// EJ 4 Plancha 2
+    if(isJoinable)
+        delete pipe;
     ASSERT(this != currentThread);
     if (stack != nullptr) {
         SystemDep::DeallocBoundedArray((char *) stack,
@@ -157,7 +169,9 @@ Thread::Finish()
 {
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
-
+    /// EJ 4 Plancha 2
+    if(isJoinable)
+        pipe->Write(1);
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
     threadToBeDestroyed = currentThread;
@@ -283,6 +297,18 @@ Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     machineState[InitialPCState]  = (uintptr_t) func;
     machineState[InitialArgState] = (uintptr_t) arg;
     machineState[WhenDonePCState] = (uintptr_t) ThreadFinish;
+}
+/// EJ 4 Plancha 2
+/// EJ 4 Plancha 2
+/// EJ 4 Plancha 2
+void
+Thread::Join()
+{
+    ASSERT(isJoinable);
+    ASSERT(this != currentThread);
+    //Thread* waiterThread = currentThread;
+    this->pipe->Read();
+    return;
 }
 
 #ifdef USER_PROGRAM

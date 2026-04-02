@@ -70,10 +70,10 @@ SimpleThread(void *name_)
 void
 ThreadTestSimple()
 {
-    Thread *newThread = new Thread("2nd");
-    Thread *newThread1 = new Thread("3rd");
-    Thread *newThread2 = new Thread("4th");
-    Thread *newThread3 = new Thread("5th");
+    Thread *newThread = new Thread("2nd" ,0);
+    Thread *newThread1 = new Thread("3rd",0);
+    Thread *newThread2 = new Thread("4th",0);
+    Thread *newThread3 = new Thread("5th",0);
     newThread->Fork(SimpleThread, NULL);
     newThread1->Fork(SimpleThread, NULL);
     newThread2->Fork(SimpleThread, NULL);

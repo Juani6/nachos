@@ -3,7 +3,6 @@
 #define __NACHOS_THREAD_CHANNELS__
 
 #include "semaphore.hh"
-#include "lock.hh"
 
 
 class Channel {
