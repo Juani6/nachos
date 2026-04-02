@@ -14,7 +14,7 @@
 
 static const unsigned NUM_TURNSTILES = 2;
 static const unsigned ITERATIONS_PER_TURNSTILE = 50;
-static bool done[NUM_TURNSTILES];
+//static bool done[NUM_TURNSTILES];
 static int count;
 
 static void
@@ -31,7 +31,7 @@ Turnstile(void *n_)
         currentThread->Yield();
     }
     printf("Turnstile %u finished. Count is now %u.\n", *n, count);
-    done[*n] = true;
+    //done[*n] = true;
 }
 
 
@@ -51,7 +51,7 @@ TurnstileSem(void *n_)
 		currentThread->Yield();
     }
     printf("Turnstile %u finished. Count is now %u.\n", *n, count);
-    done[*n] = true;
+    // done[*n] = true;
 }
 
 void
@@ -71,7 +71,7 @@ ThreadTestGarden()
         values[i] = i;
         t[i] = new Thread(names[i],1);
         //t->Fork(Turnstile, (void *) &(values[i]));
-		t[i]->Fork(TurnstileSem, (void *) &(values[i]));
+				t[i]->Fork(TurnstileSem, (void *) &(values[i]));
     }
    
     // Wait until all turnstile threads finish their work.  `Thread::Join` is

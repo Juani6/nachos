@@ -50,8 +50,8 @@ Thread::Thread(const char *threadName,bool join)
     status   = JUST_CREATED;
     /// EJ 4 Plancha 2
 
-    isJoinable = join;
-    if(isJoinable)
+    joinable = join;
+    if(joinable)
         pipe = new Channel("Pipe");
     // EJ 4
 
@@ -73,7 +73,7 @@ Thread::~Thread()
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     /// EJ 4 Plancha 2
-    if(isJoinable)
+    if(joinable)
         delete pipe;
     ASSERT(this != currentThread);
     if (stack != nullptr) {
@@ -170,7 +170,7 @@ Thread::Finish()
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
     /// EJ 4 Plancha 2
-    if(isJoinable)
+    if(joinable)
         pipe->Write(1);
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
@@ -304,11 +304,17 @@ Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 void
 Thread::Join()
 {
-    ASSERT(isJoinable);
+    ASSERT(joinable);
     ASSERT(this != currentThread);
     //Thread* waiterThread = currentThread;
     this->pipe->Read();
     return;
+}
+
+const bool
+Thread::IsJoinable() 
+{
+	return this->joinable;
 }
 
 #ifdef USER_PROGRAM

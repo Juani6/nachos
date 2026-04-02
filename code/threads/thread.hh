@@ -133,6 +133,8 @@ public:
     
     /// EJ 4 Plancha 2
     void Join();
+		
+		const bool IsJoinable();
 
 private:
     // Some of the private data for this class is listed above.
@@ -148,7 +150,7 @@ private:
     const char *name;
 
     /// EJ 4 Plancha 2
-    bool isJoinable;
+    bool joinable;
     Channel* pipe;
     /// EJ 4 Plancha 2
 
