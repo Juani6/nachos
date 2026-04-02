@@ -91,4 +91,5 @@ ThreadTestGarden()
     }
     delete []values;
     delete []names;
+		delete sema;
 }

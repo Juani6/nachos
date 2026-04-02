@@ -87,6 +87,9 @@ ThreadTestSimple()
         currentThread->Yield(); 
     }
 
+		#ifdef SEMAPHORE_TEST
+		delete sem;
+		#endif
     printf("Test finished\n");
 }
 
