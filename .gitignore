@@ -38,4 +38,4 @@
 # Ignorar txts en carpeta de código
 /code/**/*.txt
 #Ignorar txt de la plancha1
-plancha1.txt
+!plancha1.txt
