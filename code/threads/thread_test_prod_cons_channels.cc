@@ -20,7 +20,7 @@
 
 static_assert(SIZE_PROD == SIZE_CONS);
 
-static bool done [SIZE_CONS + SIZE_PROD];
+//static bool done [SIZE_CONS + SIZE_PROD];
 Channel* ch = new Channel("ProdCons channel");
 
 
@@ -34,7 +34,7 @@ static void Prod(void* i){
 			ch->Write(val);
 			currentThread->Yield();
 		}
-    done[SIZE_CONS + *n ] = true;
+  //  done[SIZE_CONS + *n ] = true;
 		return;
 }
 
@@ -47,7 +47,7 @@ static void Cons(void* i){
 			printf("Consumidor [%s]: consume: %d\n", currentThread->GetName(), val);
 			currentThread->Yield();
 		}
-    done[*n] = true;
+    //done[*n] = true;
 		return;
 }
 
