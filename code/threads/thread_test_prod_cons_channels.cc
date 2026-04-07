@@ -30,7 +30,7 @@ static void Prod(void* i){
 		int val;
 		for(int j = 0; j < NUMBER_MSG; j++) {
 			val = (*n) *100 + j;
-			printf("Productor [%s]: produce: %d\n", currentThread->GetName(), val);
+			printf("Productor  [%s]: produce: %d\n", currentThread->GetName(), val);
 			ch->Write(val);
 			currentThread->Yield();
 		}

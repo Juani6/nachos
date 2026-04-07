@@ -42,7 +42,7 @@ static void Prod(void* i){
 			Buffer[cant_elem] = cant_total;
 			cant_elem++;
 			cant_total++;
-			printf("Productor produce: [%s] en %d\n", currentThread->GetName(), cant_total);
+			printf("Productor  produce: [%s] en %d\n", currentThread->GetName(), cant_total);
 			
 			notEmptyBufferLock->Broadcast();
 			
