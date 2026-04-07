@@ -29,6 +29,7 @@ Lock::Lock(const char *debugName)
 
 Lock::~Lock()
 {
+    DEBUG('s',"Eliminando Lock: [%s]\n",name);
     ASSERT(holderThread == NULL);
     delete sem;   
 }

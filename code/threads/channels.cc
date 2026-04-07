@@ -13,6 +13,7 @@ Envia la confirmacion de lectura
 */
 
 #include "channels.hh"
+#include "system.hh"
 
 
 Channel::Channel(const char *debugName) {
@@ -23,6 +24,7 @@ Channel::Channel(const char *debugName) {
 }
 
 Channel::~Channel() {
+	DEBUG('s',"Eliminando Channel: [%s]\n",name);
 	delete writer;
 	delete reader;
 	delete consumed;
@@ -33,6 +35,7 @@ Channel::Write(int value) {
 	writer->P(); // Espera a que se pueda escribir
 	msg = value;
 	reader->V(); // Avisa que escribio
+	DEBUG('s',"[%s] Envie %d\n",currentThread->GetName(),msg); //ACTUALIZAR SI SE CAMBIA EL TIPO DE 'readMessage'
 	consumed->P(); // Espera a que le avisen que se consumio el msj
 	writer->V(); // Libera el escritor
 }
@@ -42,6 +45,7 @@ Channel::Read() {
 	int readMessage;
 	reader->P(); // Espera a que se pueda recibir un mensaje
 	readMessage = msg;
+	DEBUG('s',"[%s] Recibi %d\n",currentThread->GetName(),msg); //ACTUALIZAR SI SE CAMBIA EL TIPO DE 'readMessage'
 	consumed->V(); // Avisa que se consumio el mensaje
 
 	return readMessage;

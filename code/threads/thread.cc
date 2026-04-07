@@ -171,6 +171,7 @@ Thread::Finish()
     ASSERT(this == currentThread);
     /// EJ 4 Plancha 2
     if(joinable)
+        DEBUG('s',"Thread Joinable [%s] termino\n",this->GetName());
         pipe->Write(1);
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
@@ -306,7 +307,8 @@ Thread::Join()
 {
     ASSERT(joinable);
     ASSERT(this != currentThread);
-    //Thread* waiterThread = currentThread;
+    DEBUG('s',"[%s] Me uní a [%s]\n",currentThread->GetName(),this->GetName());
+  
     this->pipe->Read();
     return;
 }

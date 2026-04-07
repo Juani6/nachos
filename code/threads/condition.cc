@@ -16,6 +16,7 @@
 
 
 #include "condition.hh"
+#include "system.hh"
 
 
 /// Dummy functions -- so we can compile our later assignments.
@@ -32,6 +33,7 @@ Condition::Condition(const char *debugName, Lock *conditionLock)
 
 Condition::~Condition()
 {
+	DEBUG('s',"Eliminando Condition: [%s]\n",name);
   delete internalLock;
 	delete internalSem;
 }
@@ -45,8 +47,9 @@ Condition::GetName() const
 void
 Condition::Wait()
 {
-  internalLock->Acquire();
+	internalLock->Acquire();
 	waiters++;
+	DEBUG('s',"%s: Entre en Wait [%s]\n",name,currentThread->GetName());
 	internalLock->Release();
 	
 	externalLock->Release();
@@ -55,6 +58,7 @@ Condition::Wait()
 
 	internalLock->Acquire();
 	waiters--;
+	DEBUG('s',"%s: Sali de Wait [%s]\n",name,currentThread->GetName());
 	internalLock->Release();
 }
 
@@ -64,6 +68,7 @@ Condition::Signal()
   internalLock->Acquire();
 	if (waiters > 0)
 		internalSem->V();
+	DEBUG('s',"%s: Hice signal [%s]\n",name,currentThread->GetName());
 	internalLock->Release();
 }
 
@@ -73,5 +78,6 @@ Condition::Broadcast()
 	internalLock->Acquire();
 	for(int i = 0; i < waiters; i++)
 		internalSem->V();
+	DEBUG('s',"%s: Hice Broadcast [%s]\n",name,currentThread->GetName());
 	internalLock->Release();
 }
