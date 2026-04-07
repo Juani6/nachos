@@ -1,3 +1,11 @@
+/*
+    En este programa se ejecutan 2 funciones una con un LOCK (TestLock )y una sin (Test)
+    La idea central es que se crean 2 Threads los cuales entran a la funcion con una variable global (valor_compartido) que comparten
+    Los Threads escriben el valor que les pasaron al ser creados (0 y 1) y sobreescriben la variable global previo al print, forzando un cambio de contexto
+    de esta forma fomentamos un race condition, al no haber lock se podra ver como el Thread 1 imprime 1 (cuando deberia ser 0) y viceversa
+    
+    En la otra funcion esto no sucede ya que antes de modificar la variable se toma un lock (shareLock) y no se suelta hasta imprimirlo, resultando en que cada thread imprime lo que deberia
+ */
 #include "thread_test_lock.hh"
 
 #include "thread.hh"
@@ -8,6 +16,7 @@
 
 Lock* shareLock = new Lock("TestLock");
 int valor_compartido;
+
 
 void Test(void* i)
 {
