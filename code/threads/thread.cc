@@ -170,9 +170,11 @@ Thread::Finish()
     interrupt->SetLevel(INT_OFF);
     ASSERT(this == currentThread);
     /// EJ 4 Plancha 2
-    if(joinable)
-        DEBUG('s',"Thread Joinable [%s] termino\n",this->GetName());
-        pipe->Write(1);
+    if(joinable) {
+
+			DEBUG('s',"Thread Joinable [%s] termino\n",this->GetName());
+			pipe->Write(1);
+		}
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
     threadToBeDestroyed = currentThread;
