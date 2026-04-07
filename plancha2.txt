@@ -1,7 +1,7 @@
 ------------------------- EJERCICIO 1 y 2  --------------------------------
 
 Se implementaron locks y variables de condición, ambos con sus respectivos test
-(thread_test_contador y thread_test_prod_cons, respectivamente).
+("thread_test_lock" y "thread_test_prod_cons", respectivamente).
 
 
 ------------------------- EJERCICIO 3 -------------------------------------
