@@ -42,7 +42,7 @@ IsThreadStatus(ThreadStatus s)
 /// `Thread::Fork`.
 ///
 /// * `threadName` is an arbitrary string, useful for debugging.
-Thread::Thread(const char *threadName,bool join)
+Thread::Thread(const char *threadName,bool join,int prio)
 {
     name     = threadName;
     stackTop = nullptr;
@@ -53,7 +53,9 @@ Thread::Thread(const char *threadName,bool join)
     joinable = join;
     if(joinable)
         pipe = new Channel("Pipe");
-    // EJ 4
+    // EJ 5
+    ASSERT(prio >= 0 && prio <10);
+    priority = prio;
 
 #ifdef USER_PROGRAM
     space    = nullptr;
@@ -315,6 +317,13 @@ Thread::Join()
     return;
 }
 
+///EJ 5 Plancha 2
+int 
+Thread::GetPriority()
+{
+
+    return priority;
+}
 const bool
 Thread::IsJoinable() 
 {

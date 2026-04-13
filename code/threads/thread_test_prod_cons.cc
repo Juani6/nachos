@@ -16,8 +16,8 @@
 #define SIZE_BUFFER 3
 #define TOTAL  1000
 
-#define SIZE_CONS 1
-#define SIZE_PROD 1
+#define SIZE_CONS 15
+#define SIZE_PROD 15
 
 int Buffer [SIZE_BUFFER];
 int cant_elem  = 0;
@@ -70,6 +70,8 @@ static void Cons(void* i){
 			printf("Consumidor esperando (buffer vacio)\n");
 			notEmptyBufferLock->Wait();
 		}
+        if(cant_total>= TOTAL)
+            continue;
 		printf("Consumidor consume: [%s] en %d\n", currentThread->GetName(), cant_total);
         cant_elem--;
         fullBufferLock->Broadcast();
@@ -104,7 +106,7 @@ ThreadTestProdCons()
     for(int i = 0;i<SIZE_CONS;i++){
         valuesC[i]=i;
         printf("i=%d\n",i);
-        Thread* t = new Thread(nameC[i],0);
+        Thread* t = new Thread(nameC[i],0,9);
         t->Fork(Cons,(void*) &(valuesC[i]));
     }
     for(int i = 0;i<SIZE_PROD;i++){

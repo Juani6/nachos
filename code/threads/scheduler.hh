@@ -42,7 +42,7 @@ public:
 private:
 
     // Queue of threads that are ready to run, but not running.
-    List<Thread*> *readyList;
+    List<Thread*>** multiPriorityQueue;
 
 };
 

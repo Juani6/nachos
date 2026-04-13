@@ -17,6 +17,7 @@
 /// All rights reserved.  See `copyright.h` for copyright notice and
 /// limitation of liability and disclaimer of warranty provisions.
 
+#define QUEUE_LEVEL 10
 
 #include "scheduler.hh"
 #include "system.hh"
@@ -27,13 +28,17 @@
 /// Initialize the list of ready but not running threads to empty.
 Scheduler::Scheduler()
 {
-    readyList = new List<Thread *>;
+    multiPriorityQueue = new List<Thread*>* [QUEUE_LEVEL];
+    for(int i=0;i<QUEUE_LEVEL;i++)
+        multiPriorityQueue[i] = new List <Thread*>;
 }
 
 /// De-allocate the list of ready threads.
 Scheduler::~Scheduler()
 {
-    delete readyList;
+    for (int i=0; i<QUEUE_LEVEL;i++)
+        delete multiPriorityQueue[i];
+    delete [] multiPriorityQueue;
 }
 
 /// Mark a thread as ready, but not running.
@@ -48,7 +53,8 @@ Scheduler::ReadyToRun(Thread *thread)
     DEBUG('t', "Putting thread %s on ready list\n", thread->GetName());
 
     thread->SetStatus(READY);
-    readyList->Append(thread);
+    int prio = thread->GetPriority();
+    multiPriorityQueue[prio]->Append(thread);
 }
 
 /// Return the next thread to be scheduled onto the CPU.
@@ -59,7 +65,13 @@ Scheduler::ReadyToRun(Thread *thread)
 Thread *
 Scheduler::FindNextToRun()
 {
-    return readyList->Pop();
+    Thread* temp = NULL;
+    int i =QUEUE_LEVEL-1;
+    while(!temp && i>=0){
+        temp = multiPriorityQueue[i]->Pop();
+        i--;
+    }
+    return temp;
 }
 
 /// Dispatch the CPU to `nextThread`.
@@ -139,5 +151,9 @@ void
 Scheduler::Print()
 {
     printf("Ready list contents:\n");
-    readyList->Apply(ThreadPrint);
+    for(int i=0; i<QUEUE_LEVEL;i++){
+        printf("[Queue %d]:",i);
+        multiPriorityQueue[i]->Apply(ThreadPrint);
+        printf("\n");
+    }
 }

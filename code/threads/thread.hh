@@ -100,7 +100,7 @@ private:
 public:
 
     /// Initialize a `Thread`.
-    Thread(const char *debugName,bool join=false);
+    Thread(const char *debugName,bool join=false,int priority=4);
 
     /// Deallocate a Thread.
     ///
@@ -134,7 +134,10 @@ public:
     /// EJ 4 Plancha 2
     void Join();
 		
-		const bool IsJoinable();
+	const bool IsJoinable();
+
+    /// EJ 5 Plancha 2
+    int GetPriority();
 
 private:
     // Some of the private data for this class is listed above.
@@ -153,6 +156,9 @@ private:
     bool joinable;
     Channel* pipe;
     /// EJ 4 Plancha 2
+
+    /// EJ 5
+    int priority;
 
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
