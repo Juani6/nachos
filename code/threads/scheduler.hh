@@ -28,7 +28,7 @@ public:
     ~Scheduler();
 
     /// Thread can be dispatched.
-    void ReadyToRun(Thread *thread);
+    void ReadyToRun(Thread *thread,int oldPrio = -1);
 
     /// Dequeue first thread on the ready list, if any, and return thread.
     Thread *FindNextToRun();

@@ -45,6 +45,14 @@ Lock::Acquire()
 {
     //DEBUG('s', "Thread: %s trying to ACQUIRE\n",currentThread->GetName());
     ASSERT(!this->IsHeldByCurrentThread());
+
+    if(holderThread && holderThread->GetPriority()<=currentThread->GetPriority()){
+        IntStatus old = interrupt->SetLevel(INT_OFF);
+        int oldPrio = holderThread->GetPriority();
+        holderThread->SetPriority(currentThread->GetPriority());
+        scheduler->ReadyToRun(holderThread,oldPrio);
+        interrupt->SetLevel(old);
+    }
     sem -> P();
     DEBUG('s', "Thread: %s ACQUIRE\n",currentThread->GetName());
     holderThread = currentThread;

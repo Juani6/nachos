@@ -316,6 +316,10 @@ Thread::Join()
     this->pipe->Read();
     return;
 }
+void
+Thread::SetPriority(int p) {
+    priority = p;
+}
 
 ///EJ 5 Plancha 2
 int 
