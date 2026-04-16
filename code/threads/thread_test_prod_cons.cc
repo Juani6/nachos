@@ -16,8 +16,8 @@
 #define SIZE_BUFFER 3
 #define TOTAL  1000
 
-#define SIZE_CONS 15
-#define SIZE_PROD 15
+#define SIZE_CONS 3
+#define SIZE_PROD 3
 
 int Buffer [SIZE_BUFFER];
 int cant_elem  = 0;
