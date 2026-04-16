@@ -76,7 +76,7 @@ void
 Condition::Broadcast()
 {
 	internalLock->Acquire();
-	for(int i = 0; i < waiters; i++)
+	for(unsigned i = 0; i < waiters; i++)
 		internalSem->V();
 	DEBUG('s',"%s: Hice Broadcast [%s]\n",name,currentThread->GetName());
 	internalLock->Release();

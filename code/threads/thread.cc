@@ -143,6 +143,12 @@ Thread::SetStatus(ThreadStatus st)
     status = st;
 }
 
+ThreadStatus
+Thread::GetStatus()
+{
+	return status;
+}
+
 const char *
 Thread::GetName() const
 {

@@ -139,6 +139,9 @@ public:
     /// EJ 5 Plancha 2
     int GetPriority();
     void SetPriority(int p);
+		// 5b 
+
+		ThreadStatus GetStatus();
 
 private:
     // Some of the private data for this class is listed above.

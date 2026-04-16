@@ -16,7 +16,7 @@ static const unsigned NUM_TURNSTILES = 2;
 static const unsigned ITERATIONS_PER_TURNSTILE = 50;
 //static bool done[NUM_TURNSTILES];
 static int count;
-
+/* 
 static void
 Turnstile(void *n_)
 {
@@ -34,7 +34,7 @@ Turnstile(void *n_)
     //done[*n] = true;
 }
 
-
+ */
 // EJ 18
 Semaphore* sema; 
 static void

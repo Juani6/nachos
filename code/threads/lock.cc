@@ -46,12 +46,18 @@ Lock::Acquire()
     //DEBUG('s', "Thread: %s trying to ACQUIRE\n",currentThread->GetName());
     ASSERT(!this->IsHeldByCurrentThread());
 
-    if(holderThread && holderThread->GetPriority()<currentThread->GetPriority()){
+    if(holderThread && holderThread->GetPriority() < currentThread->GetPriority()){
         DEBUG('s',"[%s] Hubo una inversion de prioridad \n",currentThread->GetName());
-        int newPrio = holderThread->GetPriority();
-        //HAY Q DESAHABILITAR
-        scheduler->ReadyToRun(holderThread,newPrio);
-    }
+        
+				IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
+				
+				int newPrio = holderThread->GetPriority();
+        // Check de seguridad para evitar que un proceso modifique el estado de otro.
+				if (holderThread->GetStatus() == READY)
+        	scheduler->ReadyToRun(holderThread,newPrio);
+				
+				interrupt->SetLevel(oldLevel);
+			}
     sem -> P();
     DEBUG('s', "Thread: %s ACQUIRE\n",currentThread->GetName());
     holderThread = currentThread;
