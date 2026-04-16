@@ -18,13 +18,13 @@
 /// * `name` points to a string with a thread name, just for debugging
 ///   purposes.
 
-
-bool thread2Done = false;
-
 #ifdef SEMAPHORE_TEST
-Semaphore *sem = new Semaphore("Simple test",NUM_SEM);
+		Semaphore *sem;
 #endif
 
+
+
+bool thread2Done = false;		
 bool thread3Done = false;
 bool thread4Done = false;
 bool thread5Done = false;
@@ -70,6 +70,11 @@ SimpleThread(void *name_)
 void
 ThreadTestSimple()
 {
+
+		#ifdef SEMAPHORE_TEST
+		sem = new Semaphore("Simple test",NUM_SEM);
+		#endif
+
     Thread  *newThread = new Thread("2nd");
     Thread *newThread1 = new Thread("3rd");
     Thread *newThread2 = new Thread("4th");

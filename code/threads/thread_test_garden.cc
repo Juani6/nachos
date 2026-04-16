@@ -36,7 +36,7 @@ Turnstile(void *n_)
 
 
 // EJ 18
-Semaphore* sema = new Semaphore("Garden",1); 
+Semaphore* sema; 
 static void
 TurnstileSem(void *n_)
 {
@@ -59,7 +59,7 @@ ThreadTestGarden()
 {
     //Launch a new thread for each turnstile 
     //(except one that will be run by the main thread)
-
+		sema = new Semaphore("Garden",1);
     char **names = new char*[NUM_TURNSTILES];
     unsigned *values = new unsigned[NUM_TURNSTILES];
     Thread* t [NUM_TURNSTILES];

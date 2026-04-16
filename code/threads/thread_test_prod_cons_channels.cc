@@ -20,10 +20,7 @@
 
 static_assert(SIZE_PROD == SIZE_CONS);
 
-//static bool done [SIZE_CONS + SIZE_PROD];
-Channel* ch = new Channel("ProdCons channel");
-
-
+Channel* ch;
 
 static void Prod(void* i){
     const int *n = (int*) i;
@@ -40,7 +37,6 @@ static void Prod(void* i){
 
 
 static void Cons(void* i){
-    const int *n = (int*) i;
 		int val;
 		for(int j = 0; j < NUMBER_MSG; j++) {
 			val = ch->Read();
@@ -54,13 +50,16 @@ static void Cons(void* i){
 void
 ThreadTestProdConsChannels()
 {
+		//static bool done [SIZE_CONS + SIZE_PROD];
+		ch = new Channel("ProdCons channel");
+    Thread *threadArray[SIZE_PROD + SIZE_CONS];
+
     //PORQUE SI PASO LAS VARIABLES DE OTRA FORMA SE PASAN MAL
-    int* valuesC = new int [SIZE_CONS];
-    int* valuesP = new int [SIZE_PROD];
+		int *valuesC = new int [SIZE_CONS];
+    int *valuesP = new int [SIZE_PROD];
     char** nameC = new char*[SIZE_CONS];
 		char** nameP = new char* [SIZE_PROD];
-		Thread *threadArray[SIZE_PROD + SIZE_CONS];
-    
+
 		for (int i=0;i<SIZE_CONS;i++){
         nameC[i] = new char[20];
         snprintf(nameC[i],20,"Cons:%d",i);

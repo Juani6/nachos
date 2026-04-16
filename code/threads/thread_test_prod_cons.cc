@@ -19,13 +19,16 @@
 #define SIZE_CONS 3
 #define SIZE_PROD 3
 
+
 int Buffer [SIZE_BUFFER];
 int cant_elem  = 0;
 bool done [SIZE_CONS + SIZE_PROD];
 int cant_total = 0;
-Lock* lock     = new Lock("ProdCons");
-Condition* fullBufferLock	 = new Condition("fullBufferLock", lock);
-Condition* notEmptyBufferLock  = new Condition("cantFree", lock);
+
+
+Condition* notEmptyBufferLock ;
+Lock* lock;
+Condition* fullBufferLock;
 
 static void Prod(void* i){
     const int *n = (int*) i;
@@ -89,6 +92,10 @@ static void Cons(void* i){
 void
 ThreadTestProdCons()
 {
+
+	lock = new Lock("ProdCons");
+	fullBufferLock	 = new Condition("fullBufferLock", lock);
+	notEmptyBufferLock  = new Condition("cantFree", lock);
     //PORQUE SI PASO LAS VARIABLES DE OTRA FORMA SE PASAN MAL
     int* valuesC = new int [SIZE_CONS];
     int* valuesP = new int [SIZE_PROD];

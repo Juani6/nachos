@@ -14,40 +14,41 @@
 #include <unistd.h>
 #include "system.hh"
 
-Lock* shareLock = new Lock("TestLock");
+Lock* shareLock;
 int valor_compartido;
-
 
 void Test(void* i)
 {
-    const int *n = (int*) i;
-    for (int j=0;j<5;j++)
-    {
-        valor_compartido = *n;
-        currentThread->Yield();
-        printf("Mi valor [%s] es: %d\n",currentThread->GetName(),valor_compartido);
-    }
-
+	const int *n = (int*) i;
+	for (int j=0;j<5;j++)
+	{
+		valor_compartido = *n;
+		currentThread->Yield();
+		printf("Mi valor [%s] es: %d\n",currentThread->GetName(),valor_compartido);
+	}
+	
 }
 
 void TestLock(void* i)
 {
-    const int *n = (int*) i;
-    for (int j=0;j<5;j++)
-    {
-        shareLock->Acquire();
-        valor_compartido = *n;
-        currentThread->Yield();
-        printf("Mi valor [%s] es: %d\n",currentThread->GetName(),valor_compartido);
-        shareLock->Release();
-    }
-
+	const int *n = (int*) i;
+	for (int j=0;j<5;j++)
+	{
+		shareLock->Acquire();
+		valor_compartido = *n;
+		currentThread->Yield();
+		printf("Mi valor [%s] es: %d\n",currentThread->GetName(),valor_compartido);
+		shareLock->Release();
+	}
+	
 }
 
 
 
 void ThreadLockTest()
 {
+	
+		shareLock = new Lock("TestLock");
     int a = 0;
     int b = 1;
     Thread* t1 = new Thread("Thread1",1);
