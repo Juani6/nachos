@@ -79,8 +79,7 @@ Thread::~Thread()
         delete pipe;
     ASSERT(this != currentThread);
     if (stack != nullptr) {
-        SystemDep::DeallocBoundedArray((char *) stack,
-                                       STACK_SIZE * sizeof *stack);
+        SystemDep::DeallocBoundedArray((char *) stack, STACK_SIZE * sizeof *stack);
     }
 }
 
@@ -320,6 +319,9 @@ Thread::Join()
     DEBUG('s',"[%s] Me uní a [%s]\n",currentThread->GetName(),this->GetName());
   
     this->pipe->Read();
+		if (threadToBeDestroyed == this)
+			threadToBeDestroyed = nullptr;
+		delete this;
     return;
 }
 void

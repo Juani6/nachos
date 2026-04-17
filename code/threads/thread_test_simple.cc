@@ -23,13 +23,6 @@
 #endif
 
 
-
-bool thread2Done = false;		
-bool thread3Done = false;
-bool thread4Done = false;
-bool thread5Done = false;
-
-
 void
 SimpleThread(void *name_)
 {
@@ -50,15 +43,6 @@ SimpleThread(void *name_)
 				#endif
         currentThread->Yield();
     }
-    if (strcmp(currentThread->GetName(),"2nd")==0) 
-			thread2Done = true;
-		if (strcmp(currentThread->GetName(),"3rd")==0) 
-			thread3Done = true;
-		if (strcmp(currentThread->GetName(),"4th")==0) 
-			thread4Done = true;
-		if (strcmp(currentThread->GetName(),"5th")==0) 
-			thread5Done = true;
-    
     printf("!!! Thread `%s` has finished SimpleThread\n", currentThread->GetName());
  
 }
@@ -75,11 +59,11 @@ ThreadTestSimple()
 		sem = new Semaphore("Simple test",NUM_SEM);
 		#endif
 
-    Thread  *newThread = new Thread("2nd");
-    Thread *newThread1 = new Thread("3rd");
-    Thread *newThread2 = new Thread("4th");
-    Thread *newThread3 = new Thread("5th");
-    newThread->Fork(SimpleThread, NULL);
+    Thread *newThread0 = new Thread("2nd",true);
+    Thread *newThread1 = new Thread("3rd",true);
+    Thread *newThread2 = new Thread("4th",true);
+    Thread *newThread3 = new Thread("5th",true);
+    newThread0->Fork(SimpleThread, NULL);
     newThread1->Fork(SimpleThread, NULL);
     newThread2->Fork(SimpleThread, NULL);
     newThread3->Fork(SimpleThread, NULL);
@@ -88,10 +72,10 @@ ThreadTestSimple()
     SimpleThread(NULL);
 
    //Wait for the 2nd thread to finish if needed
-    
-	 	while (!thread2Done && !thread3Done && !thread4Done && !thread5Done) {
-        currentThread->Yield(); 
-    }
+    newThread0->Join();
+		newThread1->Join();
+		newThread2->Join();
+		newThread3->Join();
 
 		#ifdef SEMAPHORE_TEST
 		delete sem;

@@ -47,13 +47,14 @@ THREAD_HDR = 			 threads/condition.hh             \
 						 threads/system.hh                				\
 						 threads/thread.hh                				\
 						 threads/thread_test.hh           				\
-						 threads/thread_test_lock.hh							 \
+						 threads/thread_test_lock.hh					\
 						 threads/thread_test_garden.hh    				\
 						 threads/thread_test_prod_cons.hh 				\
-						 threads/thread_test_prod_cons_channels.hh		\
+						 threads/thread_test_prod_cons_channels.hh			\
 						 threads/thread_test_simple.hh    				\
-						 threads/thread_test_join.hh              \
-						 threads/thread_test_new_scheduler.hh     \
+						 threads/thread_test_join.hh              			\
+						 threads/thread_test_new_scheduler.hh     			\
+						 threads/thread_test_ip.hh 					\
 						 lib/assert.hh                    				\
 						 lib/debug.hh                     				\
 						 lib/debug_opts.hh                				\
@@ -75,12 +76,13 @@ THREAD_SRC = threads/main.cc                  \
 						 threads/thread.cc                		   \
 						 threads/thread_test_lock.cc							 \
 						 threads/thread_test.cc           		   \
-						 threads/thread_test_join.cc             \
+						 threads/thread_test_join.cc                       \
 						 threads/thread_test_garden.cc    		   \
 						 threads/thread_test_prod_cons.cc 		   \
-						 threads/thread_test_prod_cons_channels.cc \
+						 threads/thread_test_prod_cons_channels.cc 	   \
 						 threads/thread_test_simple.cc    		   \
-						 threads/thread_test_new_scheduler.cc    \
+						 threads/thread_test_new_scheduler.cc    	   \
+						 threads/thread_test_ip.cc 		    	   \
 						 lib/assert.cc                    		   \
 						 lib/debug.cc                     		   \
 						 lib/utility.cc                   		   \

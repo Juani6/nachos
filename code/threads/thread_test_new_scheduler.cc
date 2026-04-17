@@ -29,5 +29,4 @@ void ThreadNewScheduler(){
   t5->Join();
 
   currentThread->Yield();
-  
 }

@@ -27,8 +27,8 @@ void childFun(void* x) {
 
 
 void ThreadJoinTest() {
-	Thread *hijo1 = new Thread("Hijo joineable",1);
-
+	Thread *hijo1 = new Thread("Hijo NO Joineable",0);
+	Thread *hijo2 = new Thread("Hijo Joineable",1);
 	printf("\nProbamos sin la rutina forzando un cambio de contexto...\n\n");
 	hijo1->Fork(childFun, NULL);
 	currentThread->Yield();
@@ -36,8 +36,8 @@ void ThreadJoinTest() {
 
 	printf("Activamos el JOIN...\n");
 
-	hijo1->Fork(childFun, NULL);
-	hijo1->Join();
+	hijo2->Fork(childFun, NULL);
+	hijo2->Join();
 	printf("Soy el padre!\n\n");
 
 	return;

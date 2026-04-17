@@ -54,10 +54,11 @@ Scheduler::ReadyToRun(Thread *thread, int newPrio)
     thread->SetStatus(READY);
     DEBUG('t', "Putting thread %s on ready list\n", thread->GetName());
     if (newPrio >= 0){
+				DEBUG('s', "Inversion de priordades del lock");
         scheduler->multiPriorityQueue[oldPrio]->Remove(thread);
         prio = newPrio;
     } else {
-        prio = thread->GetPriority();
+        prio = oldPrio;
     }
 
     multiPriorityQueue[prio]->Append(thread);
@@ -129,7 +130,7 @@ Scheduler::Run(Thread *nextThread)
     // need to delete its carcass.  Note we cannot delete the thread before
     // now (for example, in `Thread::Finish`), because up to this point, we
     // were still running on the old thread's stack!
-    if (threadToBeDestroyed != nullptr) {
+    if (threadToBeDestroyed != nullptr && !threadToBeDestroyed->IsJoinable()) {
         delete threadToBeDestroyed;
         threadToBeDestroyed = nullptr;
     }

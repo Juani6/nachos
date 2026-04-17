@@ -18,6 +18,7 @@
 #include "thread_test_prod_cons_channels.hh" // Ejercicio 3 plancha 2
 #include "thread_test_join.hh" // Ejercicio 4 plancha 2
 #include "thread_test_new_scheduler.hh" // Ejercicio 5 plancha 2
+#include "thread_test_ip.hh"
 #include "lib/utility.hh"
 
 #include <stdio.h>
@@ -35,10 +36,11 @@ static const Test TESTS[] = {
     { &ThreadTestSimple,   "simple",   "Simple thread interleaving" },
     { &ThreadTestGarden,   "garden",   "Ornamental garden" },
     { &ThreadTestProdCons, "prodcons", "Producer/Consumer" },
-	{ &ThreadLockTest, "lock", "Thread Lock"},
-	{ &ThreadTestProdConsChannels, "channels", "Producer/Consumer"},
-	{ &ThreadJoinTest, "join", "Thread Join"},
-    { &ThreadNewScheduler, "scheduler", "MultiQueue"}
+	  { &ThreadLockTest, "lock", "Thread Lock"},
+	  { &ThreadTestProdConsChannels, "channels", "Producer/Consumer"},
+	  { &ThreadJoinTest, "join", "Thread Join"},
+    { &ThreadNewScheduler, "scheduler", "MultiQueue"},
+		{ &ThreadIPTest, "inversion", "Inversion de prioridades"}
 };
 static const unsigned NUM_TESTS = sizeof TESTS / sizeof TESTS[0];
 
