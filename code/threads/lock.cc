@@ -15,6 +15,11 @@
 /// limitation of liability and disclaimer of warranty provisions.
 
 
+/// El problema de inversión de prioridad no puede ser resuelta directamente en semaforos ya que estos carecen de una nocion de propiedad
+/// es decir, que la utilidad de los semaforos son restringir el ingresoa zonas criticas y/o señalizacion (handshakes), por ende el sistema operativo 
+/// no tiene la certeza de a quien deberia cambiar la prioridad o beneficiar (en relacion al scheduler).
+/// En cambio las variables de condicion y Locks tienen un recurso con ownership, y por ende el sistema operativo puede manejar de forma eficiente los procesos que estan compitiendo por esos recursos.
+
 #include "lock.hh"
 #include "system.hh"
 #include <string.h>
@@ -49,15 +54,15 @@ Lock::Acquire()
     if(holderThread && holderThread->GetPriority() < currentThread->GetPriority()){
         DEBUG('s',"[%s] Hubo una inversion de prioridad \n",currentThread->GetName());
         
-				IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
+		IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
 				
-				int newPrio = holderThread->GetPriority();
+		int newPrio = holderThread->GetPriority();
         // Check de seguridad para evitar que un proceso modifique el estado de otro.
-				if (holderThread->GetStatus() == READY)
-        	scheduler->ReadyToRun(holderThread,newPrio);
+		if (holderThread->GetStatus() == READY)
+            scheduler->ReadyToRun(holderThread,newPrio);
 				
-				interrupt->SetLevel(oldLevel);
-			}
+			interrupt->SetLevel(oldLevel);
+	}
     sem -> P();
     DEBUG('s', "Thread: %s ACQUIRE\n",currentThread->GetName());
     holderThread = currentThread;
