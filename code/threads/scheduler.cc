@@ -122,8 +122,9 @@ Scheduler::Run(Thread *nextThread)
     // need to delete its carcass.  Note we cannot delete the thread before
     // now (for example, in `Thread::Finish`), because up to this point, we
     // were still running on the old thread's stack!
-    if (threadToBeDestroyed != nullptr && !threadToBeDestroyed->IsJoinable()) {
-        delete threadToBeDestroyed;
+    if (threadToBeDestroyed != nullptr ){
+        if (!threadToBeDestroyed->IsJoinable()) 
+            delete threadToBeDestroyed;
         threadToBeDestroyed = nullptr;
     }
 
