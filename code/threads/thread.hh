@@ -140,8 +140,9 @@ public:
     int GetPriority();
     void SetPriority(int p);
 		// 5b 
+    int GetOriginalPriority();
 
-		ThreadStatus GetStatus();
+	ThreadStatus GetStatus();
 
 private:
     // Some of the private data for this class is listed above.
@@ -163,7 +164,7 @@ private:
 
     /// EJ 5
     int priority;
-
+    int originalPriority;
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
 

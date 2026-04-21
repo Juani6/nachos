@@ -46,22 +46,14 @@ Scheduler::~Scheduler()
 ///
 /// * `thread` is the thread to be put on the ready list.
 void
-Scheduler::ReadyToRun(Thread *thread, int newPrio)
+Scheduler::ReadyToRun(Thread *thread,int oldPrio)
 {
     ASSERT(thread != nullptr);
-    int oldPrio = thread->GetPriority();
-    int prio;
     thread->SetStatus(READY);
     DEBUG('t', "Putting thread %s on ready list\n", thread->GetName());
-    if (newPrio >= 0){
-				DEBUG('s', "Inversion de priordades del lock");
+    if (oldPrio != -1)
         scheduler->multiPriorityQueue[oldPrio]->Remove(thread);
-        prio = newPrio;
-    } else {
-        prio = oldPrio;
-    }
-
-    multiPriorityQueue[prio]->Append(thread);
+    multiPriorityQueue[thread->GetPriority()]->Append(thread);
     
 }
 

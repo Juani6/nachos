@@ -23,6 +23,7 @@
 #include "lock.hh"
 #include "system.hh"
 #include <string.h>
+#include "lib/list.hh"
 /// Dummy functions -- so we can compile our later assignments.
 
 Lock::Lock(const char *debugName)
@@ -56,12 +57,13 @@ Lock::Acquire()
         
 		IntStatus oldLevel = interrupt->SetLevel(INT_OFF);
 				
-		int newPrio = holderThread->GetPriority();
         // Check de seguridad para evitar que un proceso modifique el estado de otro.
-		if (holderThread->GetStatus() == READY)
-            scheduler->ReadyToRun(holderThread,newPrio);
-				
-			interrupt->SetLevel(oldLevel);
+		if (holderThread->GetStatus() == READY){
+            int oldPrio = holderThread->GetPriority();
+            holderThread->SetPriority(currentThread->GetPriority()); 
+            scheduler->ReadyToRun(holderThread,oldPrio);
+        }    
+		interrupt->SetLevel(oldLevel);
 	}
     sem -> P();
     DEBUG('s', "Thread: %s ACQUIRE\n",currentThread->GetName());
@@ -73,6 +75,7 @@ Lock::Release()
 {
     //DEBUG('s', "Thread: \"%s\" trying to RELEASE\n",currentThread->GetName());
     ASSERT(this->IsHeldByCurrentThread());
+    holderThread->SetPriority(holderThread->GetOriginalPriority());
     holderThread = NULL;
     DEBUG('s', "Thread: %s RELEASE\n",currentThread->GetName());
     sem -> V();

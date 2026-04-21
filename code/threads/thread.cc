@@ -56,6 +56,7 @@ Thread::Thread(const char *threadName,bool join,int prio)
     // EJ 5
     ASSERT(prio >= 0 && prio <10);
     priority = prio;
+    originalPriority = prio;
 
 #ifdef USER_PROGRAM
     space    = nullptr;
@@ -336,6 +337,13 @@ Thread::GetPriority()
 
     return priority;
 }
+
+int 
+Thread::GetOriginalPriority()
+{
+    return originalPriority;
+}
+
 const bool
 Thread::IsJoinable() 
 {
