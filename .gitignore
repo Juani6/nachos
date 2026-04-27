@@ -39,5 +39,6 @@
 /code/**/*.txt
 # Ignorar txt de la plancha1
 /plancha1.txt
+/plancha2.txt
 # Ignorar archivos de valgrind
 /code/thread/vgcore*
