@@ -26,6 +26,9 @@
 
 #include "channels.hh"
 
+#ifdef USER_PROG
+#include "userprog/syscall.h"
+#endif
 
 /// This is put at the top of the execution stack, for detecting stack
 /// overflows.
@@ -54,11 +57,16 @@ Thread::Thread(const char *threadName,bool join,int prio)
     if(joinable)
         pipe = new Channel("Pipe");
     // EJ 5
-    ASSERT(prio >= 0 && prio <10);
+    ASSERT(prio >= 0 && prio < 10);
     priority = prio;
     originalPriority = prio;
 
 #ifdef USER_PROGRAM
+    fdTable = new Table<OpenFile*>;
+    int i = fdTable->Add(nullptr); // Reservamos 0 
+    DEBUG('s', "%d reservado\n",i);
+    int j = fdTable->Add(nullptr); // Reservamos el incide 1
+    DEBUG('s', "%d reservado\n",j);
     space    = nullptr;
 #endif
 }
@@ -76,6 +84,10 @@ Thread::~Thread()
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     /// EJ 4 Plancha 2
+    #ifdef USER_PROGRAM
+        delete fdTable;
+    #endif
+    
     if(joinable)
         delete pipe;
     ASSERT(this != currentThread);

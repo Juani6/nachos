@@ -44,6 +44,7 @@
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 #include "userprog/address_space.hh"
+#include "lib/table.hh"
 #endif
 
 #include <stdint.h>
@@ -175,9 +176,9 @@ private:
     /// registers -- one for its state while executing user code, one for its
     /// state while executing kernel code.
     int userRegisters[NUM_TOTAL_REGS];
-
-public:
-
+    public:
+    // Tabla de file descriptors
+    Table<OpenFile*>* fdTable;
     // Save user-level register state.
     void SaveUserState();
 

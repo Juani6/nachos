@@ -84,11 +84,12 @@ SyscallHandler(ExceptionType _et)
 
     switch (scid) {
 
-        case SC_HALT:
+        case SC_HALT: {
+
             DEBUG('e', "Shutdown, initiated by user program.\n");
             interrupt->Halt();
             break;
-
+        }
         case SC_CREATE: {
             int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) {
@@ -103,15 +104,93 @@ SyscallHandler(ExceptionType _et)
             }
 
             DEBUG('e', "`Create` requested for file `%s`.\n", filename);
+            ASSERT(fileSystem->Create(filename,1000));
             break;
         }
+        case SC_OPEN: {
 
+            int filenameAddr = machine->ReadRegister(4);
+            if (filenameAddr == 0) { 
+                DEBUG('e', "Error: address to filename string is null.\n");
+            }
+            
+            char filename[FILE_NAME_MAX_LEN + 1];
+            if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
+                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+            }
+            
+            OpenFile *f = fileSystem->Open(filename);
+            ASSERT(f);
+            
+            OpenFileId fd = currentThread->fdTable->Add(f);
+            if (fd == -1){
+                DEBUG('e', "Error: fdTable full\n");
+            }
+
+            machine->WriteRegister(2,(int) fd);
+            break;
+        }
         case SC_CLOSE: {
             int fid = machine->ReadRegister(4);
             DEBUG('e', "`Close` requested for id %u.\n", fid);
+            
+            ASSERT(currentThread->fdTable->HasKey(fid));
+            
+            OpenFile *file = currentThread->fdTable->Remove(fid); 
+            delete file;
             break;
         }
+        case SC_REMOVE: {
+            int filenameAddr = machine->ReadRegister(4);
+            if (filenameAddr == 0) {
+                DEBUG('e', "Error: address to filename string is null");
+            }
 
+            char filename[FILE_NAME_MAX_LEN + 1];
+            if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
+                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+            }
+
+            bool err = fileSystem->Remove(filename);
+            DEBUG('e', "Intentando eliminar %s [%s] \n",filename, err ? "true" : "false");
+        }
+        case SC_READ: {
+            int buffAddr = machine->ReadRegister(4);
+            int size = machine->ReadRegister(5);
+            OpenFileId fid = machine->ReadRegister(6);
+
+            OpenFile *f = currentThread->fdTable->Get((int) fid);
+            ASSERT(f);
+
+            char auxBuff[size]; 
+            int readBytes = f->Read(auxBuff,size);
+
+            WriteBufferToUser(auxBuff, buffAddr, readBytes);
+
+            machine->WriteRegister(2, readBytes);
+
+            break;
+        }
+        case SC_WRITE: {
+            int buffAddr = machine->ReadRegister(4);
+            int size = machine->ReadRegister(5);
+            OpenFileId fid = machine->ReadRegister(6);
+
+            OpenFile *f = currentThread->fdTable->Get((int) fid);
+            ASSERT(f);
+
+            char auxBuff[size]; 
+            ReadBufferFromUser(buffAddr, auxBuff, size);
+            int writeBytes = f->Write(auxBuff,size);
+
+
+            machine->WriteRegister(2, writeBytes);
+
+            break;
+        }
+        
         default:
             fprintf(stderr, "Unexpected system call: id %d.\n", scid);
             ASSERT(false);
