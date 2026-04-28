@@ -109,6 +109,7 @@ int Remove(const char *name);
 OpenFileId Open(const char *name);
 
 /// Write `size` bytes from `buffer` to the open file.
+/// Returns -1 on failure
 int Write(const char *buffer, int size, OpenFileId id);
 
 /// Read `size` bytes from the open file into `buffer`.
@@ -117,6 +118,7 @@ int Write(const char *buffer, int size, OpenFileId id);
 /// enough, or if it is an I/O device, and there are not enough characters to
 /// read, return whatever is available (for I/O devices, you should always
 /// wait until you can return at least one character).
+/// Returns -1 on failure
 int Read(char *buffer, int size, OpenFileId id);
 
 /// Close the file, we are done reading and writing to it.
