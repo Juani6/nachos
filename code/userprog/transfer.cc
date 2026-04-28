@@ -51,7 +51,7 @@ void WriteBufferToUser(const char *buffer, int userAddress,
     ASSERT(byteCount != 0);
 
     int temp;
-    unsigned count;
+    unsigned count = 0;
     do {
         temp = *buffer;
         ASSERT(machine->WriteMem(userAddress++,1,temp));

@@ -25,7 +25,6 @@ extern void Initialize(int argc, char **argv);
 // Cleanup, called when Nachos is done.
 extern void Cleanup();
 
-
 extern Thread *currentThread;        ///< The thread holding the CPU.
 extern Thread *threadToBeDestroyed;  ///< The thread that just finished.
 extern Scheduler *scheduler;         ///< The ready list.
@@ -36,6 +35,8 @@ extern Timer *timer;                 ///< The hardware alarm clock.
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 extern Machine *machine;  // User program memory and registers.
+#include "userprog/synchconsole.hh"
+extern SynchConsole *synchConsole;
 #endif
 
 #ifdef FILESYS_NEEDED  // *FILESYS* or *FILESYS_STUB*.

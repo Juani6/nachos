@@ -61,12 +61,12 @@ Thread::Thread(const char *threadName,bool join,int prio)
     priority = prio;
     originalPriority = prio;
 
-#ifdef USER_PROGRAM
+#ifdef USER_PROG
     fdTable = new Table<OpenFile*>;
     int i = fdTable->Add(nullptr); // Reservamos 0 
-    DEBUG('s', "%d reservado\n",i);
+    ASSERT(i == CONSOLE_INPUT);
     int j = fdTable->Add(nullptr); // Reservamos el incide 1
-    DEBUG('s', "%d reservado\n",j);
+    ASSERT(j == CONSOLE_OUTPUT);
     space    = nullptr;
 #endif
 }
@@ -84,7 +84,7 @@ Thread::~Thread()
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     /// EJ 4 Plancha 2
-    #ifdef USER_PROGRAM
+    #ifdef USER_PROG
         delete fdTable;
     #endif
     

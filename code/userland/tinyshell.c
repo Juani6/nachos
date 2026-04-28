@@ -1,5 +1,4 @@
-#include "syscall.h"
-
+#include "../userprog/syscall.h"
 
 int
 main(void)

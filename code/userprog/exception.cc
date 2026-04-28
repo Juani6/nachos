@@ -161,14 +161,37 @@ SyscallHandler(ExceptionType _et)
             int size = machine->ReadRegister(5);
             OpenFileId fid = machine->ReadRegister(6);
 
+            char *auxBuff = new char[size]; 
+            int readBytes;
+            if (fid == CONSOLE_INPUT) {
+                char c;
+                readBytes = 0;
+                do  {
+                    c = synchConsole->GetChar();
+                    auxBuff[readBytes] = c;
+                    readBytes++;
+                } while (readBytes < size && c != '\n');
+                WriteBufferToUser(auxBuff, buffAddr, readBytes);
+                delete[] auxBuff;
+                machine->WriteRegister(2,readBytes);
+                break;
+            }
+
+
+
             OpenFile *f = currentThread->fdTable->Get((int) fid);
+            if (f == nullptr) {
+                DEBUG('e', "Fd invalido\n");
+                delete []auxBuff;
+                machine->WriteRegister(2,-1);
+                break;
+            }
             ASSERT(f);
 
-            char auxBuff[size]; 
-            int readBytes = f->Read(auxBuff,size);
+            readBytes = f->Read(auxBuff,size);
 
             WriteBufferToUser(auxBuff, buffAddr, readBytes);
-
+            delete[] auxBuff;
             machine->WriteRegister(2, readBytes);
 
             break;
@@ -177,15 +200,33 @@ SyscallHandler(ExceptionType _et)
             int buffAddr = machine->ReadRegister(4);
             int size = machine->ReadRegister(5);
             OpenFileId fid = machine->ReadRegister(6);
+            
+            char *auxBuff = new char[size]; 
+            int writeBytes;
+            if (fid == CONSOLE_OUTPUT) {
+                char c;
+                ReadBufferFromUser(buffAddr, auxBuff, size);    
+                for(writeBytes = 0; writeBytes < size; writeBytes++) {
+                    c = auxBuff[writeBytes];
+                    synchConsole->PutChar(c);
+                }
+                delete []auxBuff;
+                machine->WriteRegister(2,writeBytes);
+                break;
+            }
 
             OpenFile *f = currentThread->fdTable->Get((int) fid);
-            ASSERT(f);
+            if (f == nullptr) {
+                DEBUG('e', "Fd invalido\n");
+                delete []auxBuff;
+                machine->WriteRegister(2,-1);
+                break;
+            }
 
-            char auxBuff[size]; 
             ReadBufferFromUser(buffAddr, auxBuff, size);
-            int writeBytes = f->Write(auxBuff,size);
+            writeBytes = f->Write(auxBuff,size);
 
-
+            delete []auxBuff;
             machine->WriteRegister(2, writeBytes);
 
             break;
