@@ -26,7 +26,7 @@
 
 #include "channels.hh"
 
-#ifdef USER_PROG
+#ifdef USER_PROGRAM
 #include "userprog/syscall.h"
 #endif
 
@@ -61,7 +61,7 @@ Thread::Thread(const char *threadName,bool join,int prio)
     priority = prio;
     originalPriority = prio;
 
-#ifdef USER_PROG
+#ifdef USER_PROGRAM
     fdTable = new Table<OpenFile*>;
     int i = fdTable->Add(nullptr); // Reservamos 0 
     ASSERT(i == CONSOLE_INPUT);
@@ -84,8 +84,8 @@ Thread::~Thread()
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     /// EJ 4 Plancha 2
-    #ifdef USER_PROG
-        delete fdTable;
+    #ifdef USER_PROGRAM    
+    delete fdTable;
     #endif
     
     if(joinable)
@@ -191,9 +191,12 @@ Thread::Finish()
     ASSERT(this == currentThread);
     /// EJ 4 Plancha 2
     if(joinable) {
-
 			DEBUG('s',"Thread Joinable [%s] termino\n",this->GetName());
-			pipe->Write(1);
+			#ifdef USER_PROGRAM
+            pipe->Write(this->exitStatus);
+            #else
+            pipe->Write(1);
+            #endif
 		}
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 
@@ -324,18 +327,22 @@ Thread::StackAllocate(VoidFunctionPtr func, void *arg)
 /// EJ 4 Plancha 2
 /// EJ 4 Plancha 2
 /// EJ 4 Plancha 2
-void
+/// Devuelve el exit status del proceso
+int
 Thread::Join()
 {
     ASSERT(joinable);
     ASSERT(this != currentThread);
     DEBUG('s',"[%s] Me uní a [%s]\n",currentThread->GetName(),this->GetName());
-  
-    this->pipe->Read();
-		if (threadToBeDestroyed == this)
-			threadToBeDestroyed = nullptr;
-		delete this;
-    return;
+    int sonStatus = this->pipe->Read();
+	
+    /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_JOIN*/
+#ifndef USER_PROGRAM
+    if (threadToBeDestroyed == this)
+        threadToBeDestroyed = nullptr;
+    delete this;
+#endif
+    return sonStatus;
 }
 void
 Thread::SetPriority(int p) {

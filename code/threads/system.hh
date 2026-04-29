@@ -12,9 +12,11 @@
 #include "thread.hh"
 #include "scheduler.hh"
 #include "lib/utility.hh"
+#include "lib/table.hh"
 #include "machine/interrupt.hh"
 #include "machine/statistics.hh"
 #include "machine/timer.hh"
+#include "lock.hh"
 
 
 /// Initialization and cleanup routines.
@@ -33,10 +35,14 @@ extern Statistics *stats;            ///< Performance metrics.
 extern Timer *timer;                 ///< The hardware alarm clock.
 
 #ifdef USER_PROGRAM
+#include "lib/bitmap.hh"
+extern Bitmap* memoryMap; // Reemplazo del (1:1) entre paginas
+extern Lock* mMapLock; 
 #include "machine/machine.hh"
 extern Machine *machine;  // User program memory and registers.
 #include "userprog/synchconsole.hh"
 extern SynchConsole *synchConsole;
+extern Table<Thread*> *processTable;
 #endif
 
 #ifdef FILESYS_NEEDED  // *FILESYS* or *FILESYS_STUB*.

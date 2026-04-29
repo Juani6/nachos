@@ -99,9 +99,11 @@ typedef int OpenFileId;
 #define CONSOLE_OUTPUT  1
 
 /// Create a Nachos file, with `name`.
+/// Return 0 on exit or -1 in case of error
 int Create(const char *name);
 
 /// Remove the Nachos file named `name`.
+/// Return 0 on exit or -1 in case of error
 int Remove(const char *name);
 
 /// Open the Nachos file `name`, and return an `OpenFileId` that can be used

@@ -1,4 +1,4 @@
-#include "syscall.h"
+#include "../userprog/syscall.h"
 
 
 #define MAX_LINE_SIZE  60

@@ -77,6 +77,14 @@ DefaultHandler(ExceptionType et)
 ///
 /// And do not forget to increment the program counter before returning. (Or
 /// else you will loop making the same system call forever!)
+void
+ExecProcess(void* arg) {
+
+    currentThread->space->InitRegisters();
+    currentThread->space->RestoreState();
+    machine->Run();
+}
+
 static void
 SyscallHandler(ExceptionType _et)
 {
@@ -104,7 +112,10 @@ SyscallHandler(ExceptionType _et)
             }
 
             DEBUG('e', "`Create` requested for file `%s`.\n", filename);
-            ASSERT(fileSystem->Create(filename,1000));
+            if(fileSystem->Create(filename,1000)) 
+                machine->WriteRegister(2,0);
+            else
+                machine->WriteRegister(2,-1);
             break;
         }
         case SC_OPEN: {
@@ -135,7 +146,10 @@ SyscallHandler(ExceptionType _et)
             int fid = machine->ReadRegister(4);
             DEBUG('e', "`Close` requested for id %u.\n", fid);
             
-            ASSERT(currentThread->fdTable->HasKey(fid));
+            if (currentThread->fdTable->HasKey(fid))
+                machine->WriteRegister(2,0);
+            else 
+                machine->WriteRegister(2,-1);
             
             OpenFile *file = currentThread->fdTable->Remove(fid); 
             delete file;
@@ -155,6 +169,7 @@ SyscallHandler(ExceptionType _et)
 
             bool err = fileSystem->Remove(filename);
             DEBUG('e', "Intentando eliminar %s [%s] \n",filename, err ? "true" : "false");
+            break;
         }
         case SC_READ: {
             int buffAddr = machine->ReadRegister(4);
@@ -231,7 +246,66 @@ SyscallHandler(ExceptionType _et)
 
             break;
         }
-        
+        case SC_EXIT: {
+            int exitStatus = machine->ReadRegister(4);
+            currentThread->exitStatus = exitStatus;
+            delete currentThread->space;
+            currentThread->space = nullptr;
+            OpenFile* temp;
+            for(unsigned i = 2; i < Table<OpenFile*>::SIZE ; i++) {
+                if (currentThread->fdTable->HasKey(i)) {
+                    temp = currentThread->fdTable->Remove(i);
+                    delete temp;
+                }
+            }
+            currentThread->Finish();
+            break;
+        }
+        case SC_EXEC: {
+            int filenameAddr = machine->ReadRegister(4);
+            if (filenameAddr == 0) {
+                DEBUG('e', "Error: address to filename string is null");
+            }
+
+            char filename[FILE_NAME_MAX_LEN + 1];
+            if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
+                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+                break;
+            }
+            
+            DEBUG('e', "Filename : %s", filename);
+            OpenFile *executable = fileSystem->Open(filename);
+            if (executable == nullptr) {
+                machine->WriteRegister(2,-1);
+                break;
+            }
+
+            AddressSpace *space = new AddressSpace(executable);
+            Thread* newThread = new Thread("Exec created Thread",true);
+            newThread->space = space;
+
+            delete executable;
+            SpaceId pid = processTable->Add(newThread);
+            newThread->Fork(ExecProcess,nullptr);
+            machine->WriteRegister(2,pid);
+            break;
+        }
+        case SC_JOIN: {
+            int pid = machine->ReadRegister(4);
+            Thread* hijo = processTable->Get(pid);
+            ASSERT(hijo != nullptr);
+            
+            if(!hijo->IsJoinable()) {
+                fprintf(stderr, "Thread not joinable\n");
+                break;
+            }
+
+            int exitStatus = hijo->Join();
+            processTable->Remove(pid);
+            machine->WriteRegister(2,exitStatus);
+            break;
+        }
         default:
             fprintf(stderr, "Unexpected system call: id %d.\n", scid);
             ASSERT(false);

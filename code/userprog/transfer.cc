@@ -56,7 +56,8 @@ void WriteBufferToUser(const char *buffer, int userAddress,
         temp = *buffer;
         ASSERT(machine->WriteMem(userAddress++,1,temp));
         buffer++;
-    } while (count++ < byteCount);
+        count++;
+    } while (count < byteCount);
 
 }
 

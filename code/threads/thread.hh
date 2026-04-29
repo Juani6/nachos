@@ -133,7 +133,7 @@ public:
     void Print() const;
     
     /// EJ 4 Plancha 2
-    void Join();
+    int Join();
 		
 	const bool IsJoinable();
 
@@ -143,7 +143,11 @@ public:
 		// 5b 
     int GetOriginalPriority();
 
+    int exitStatus;
+    
 	ThreadStatus GetStatus();
+
+    void NullStack() {stack = nullptr;}
 
 private:
     // Some of the private data for this class is listed above.
@@ -168,7 +172,6 @@ private:
     int originalPriority;
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
-
 #ifdef USER_PROGRAM
     /// User-level CPU register state.
     ///
@@ -176,7 +179,7 @@ private:
     /// registers -- one for its state while executing user code, one for its
     /// state while executing kernel code.
     int userRegisters[NUM_TOTAL_REGS];
-    public:
+public:
     // Tabla de file descriptors
     Table<OpenFile*>* fdTable;
     // Save user-level register state.

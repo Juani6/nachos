@@ -1,6 +1,6 @@
 /// Creates files specified on the command line.
 
-#include "syscall.h"
+#include "../userprog/syscall.h"
 
 #define ARGC_ERROR    "Error: missing argument."
 #define CREATE_ERROR  "Error: could not create file."

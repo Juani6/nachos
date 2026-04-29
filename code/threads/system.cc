@@ -15,7 +15,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-
+#include "../machine/mmu.hh"
 
 /// This defines *all* of the global data structures used by Nachos.
 ///
@@ -27,7 +27,7 @@ Scheduler *scheduler;         ///< The ready list.
 Interrupt *interrupt;         ///< Interrupt status.
 Statistics *stats;            ///< Performance metrics.
 Timer *timer;                 ///< The hardware timer device, for invoking
-                              ///< context switches.
+///< context switches.
 
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
@@ -38,8 +38,11 @@ SynchDisk *synchDisk;
 #endif
 
 #ifdef USER_PROGRAM  // Requires either *FILESYS* or *FILESYS_STUB*.
+Bitmap* memoryMap;
 Machine *machine;  ///< User program memory and registers.
 SynchConsole *synchConsole;
+Table<Thread*> *processTable;
+Lock* mMapLock;
 #endif
 
 // External definition, to allow us to take a pointer to this function.
@@ -163,9 +166,9 @@ Initialize(int argc, char **argv)
         }
 #endif
 #ifdef FILESYS_NEEDED
-        if (!strcmp(*argv, "-f")) {
-            format = true;
-        }
+    if (!strcmp(*argv, "-f")) {
+        format = true;
+    }
 #endif
     }
 
@@ -174,10 +177,10 @@ Initialize(int argc, char **argv)
     stats = new Statistics;      // Collect statistics.
     interrupt = new Interrupt;   // Start up interrupt handling.
     scheduler = new Scheduler;   // Initialize the ready queue.
+   
     if (randomYield) {           // Start the timer (if needed).
         timer = new Timer(TimerInterruptHandler, 0, randomYield);
     }
-
     threadToBeDestroyed = nullptr;
 
     // We did not explicitly allocate the current thread we are running in.
@@ -191,10 +194,14 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     Debugger *d = debugUserProg ? new Debugger : nullptr;
-    
     machine = new Machine(d, numPhysicalPages);  // This must come first.
     synchConsole = new SynchConsole();
+
+    processTable = new Table<Thread*>;
+    memoryMap = new Bitmap(numPhysicalPages);
+    mMapLock = new Lock("Lock for the memory map");
     SetExceptionHandlers();
+
 #endif
 
 #ifdef FILESYS
@@ -215,6 +222,8 @@ Cleanup()
 
 #ifdef USER_PROGRAM
     delete machine;
+    delete synchConsole;
+    delete mMapLock;
 #endif
 
 #ifdef FILESYS_NEEDED
@@ -230,11 +239,35 @@ Cleanup()
     delete interrupt;
 
     delete stats;
-
     //The thread destructor checks that currentThread != this
     Thread *t = currentThread;
     currentThread = NULL;
-    delete t; 
+    
+    #ifdef USER_PROGRAM
+    Thread* temp;
+    for(unsigned i = 0; i < Table<Thread*>::SIZE ; i++) {
+        if (processTable->HasKey(i)) {
+            temp = processTable->Remove(i);
+            delete temp;
+        }
+    }
+    
+    delete processTable;
+
+    if (t->space == nullptr)
+        delete t;
+    else {
+        delete t->space;
+        t->space = nullptr;
+        delete t;
+        }
+    delete memoryMap;
+    // Limpiamos los zombies de la tabla de procesos
+    
+    #else
+        delete t; 
+    #endif
+    
 
     exit(0);
 }
