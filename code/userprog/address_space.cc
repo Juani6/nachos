@@ -12,6 +12,45 @@
 
 #include <string.h>
 
+enum exeRead {DATA, CODE};
+
+static void ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTable,Executable exe,exeRead data ) {
+    
+    // Este ASSERT es por las dudas
+    ASSERT(data == DATA || data == CODE);
+
+    char *mainMemory = machine->mainMemory;
+    unsigned physAddr;
+    uint32_t vpn;
+    uint32_t offset;
+    
+    uint32_t bytesRead = 0;
+    uint32_t spaceInPage = 0;
+    uint32_t bytesRemaining = 0;
+    uint32_t sizeToRead = 0;
+
+    while (bytesRead < size) {
+        vpn    = (unsigned) (virtualAddr + bytesRead) / PAGE_SIZE;
+        offset = (unsigned) (virtualAddr + bytesRead) % PAGE_SIZE;
+            
+        bytesRemaining = size - bytesRead;
+
+        spaceInPage = PAGE_SIZE - offset;
+
+        // Si los bytes que restan son menos que el espacio en pagina escribo eso.
+        sizeToRead = bytesRemaining < spaceInPage ? bytesRemaining : spaceInPage; 
+            
+        physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + offset;
+        DEBUG('a', "Accediendo %u %u\n",vpn, offset);
+
+        if (data == CODE)
+            exe.ReadCodeBlock(&mainMemory[physAddr], sizeToRead, bytesRead);
+        if (data == DATA)
+            exe.ReadDataBlock(&mainMemory[physAddr], sizeToRead, bytesRead);
+        bytesRead += sizeToRead;
+        }
+}
+
 
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
@@ -70,31 +109,19 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     // Then, copy in the code and data segments into memory.
     uint32_t codeSize = exe.GetCodeSize();
     uint32_t initDataSize = exe.GetInitDataSize();
-    unsigned physAddr;
-
+    
     if (codeSize > 0) {
         uint32_t virtualAddr = exe.GetCodeAddr();
         DEBUG('a', "Initializing code segment, at 0x%X, size %u\n",
-              virtualAddr, codeSize);
-        for (uint32_t i = 0; i < codeSize; i++) {
-            uint32_t vpn    = (unsigned) (virtualAddr + i) / PAGE_SIZE;
-            uint32_t offset = (unsigned) (virtualAddr + i) % PAGE_SIZE;
-            physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + offset;
-            DEBUG('a', "Accediendo %u %u\n",vpn, offset);
-            exe.ReadCodeBlock(&mainMemory[physAddr], 1, i);
-        }
+        virtualAddr, codeSize);
+        ExeRead(virtualAddr,codeSize,pageTable,exe,CODE);
     }
     if (initDataSize > 0) {
         uint32_t virtualAddr = exe.GetInitDataAddr();
         DEBUG('a', "Initializing data segment, at 0x%X, size %u\n",
               virtualAddr, initDataSize);
-        for (uint32_t i = 0; i < initDataSize; i++) {
-            uint32_t vpn    = (unsigned) (virtualAddr + i) / PAGE_SIZE;
-            uint32_t offset = (unsigned) (virtualAddr + i) % PAGE_SIZE;
-            DEBUG('a', "Accediendo %u %u\n",vpn, offset);
-            physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + offset;
-            exe.ReadDataBlock(&mainMemory[physAddr], 1, i);
-        }
+        // ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTable,Executable exe,exeRead data )
+        ExeRead(virtualAddr,initDataSize,pageTable,exe,DATA);
          
     }
 

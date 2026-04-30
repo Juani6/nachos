@@ -85,7 +85,7 @@ Thread::~Thread()
 
     /// EJ 4 Plancha 2
     #ifdef USER_PROGRAM    
-    delete fdTable;
+        delete fdTable;
     #endif
     
     if(joinable)
@@ -336,9 +336,9 @@ Thread::Join()
     DEBUG('s',"[%s] Me uní a [%s]\n",currentThread->GetName(),this->GetName());
     int sonStatus = this->pipe->Read();
 	
-    /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_JOIN*/
+    /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_EXIT*/
 #ifndef USER_PROGRAM
-    if (threadToBeDestroyed == this)
+    if (this == threadToBeDestroyed)
         threadToBeDestroyed = nullptr;
     delete this;
 #endif
@@ -368,7 +368,6 @@ Thread::IsJoinable()
 {
 	return this->joinable;
 }
-
 #ifdef USER_PROGRAM
 #include "machine/machine.hh"
 
