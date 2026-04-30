@@ -26,6 +26,7 @@
 #include "syscall.h"
 #include "filesys/directory_entry.hh"
 #include "threads/system.hh"
+#include "args.hh"
 
 #include <stdio.h>
 
@@ -77,6 +78,21 @@ DefaultHandler(ExceptionType et)
 ///
 /// And do not forget to increment the program counter before returning. (Or
 /// else you will loop making the same system call forever!)
+void
+ExecProcess2(void* arg) {
+    char** argv = (char**)arg;
+    
+    currentThread->space->InitRegisters();
+    currentThread->space->RestoreState();
+    int args = WriteArgs(argv);
+    int sp = machine->ReadRegister(STACK_REG);
+    machine->WriteRegister(STACK_REG,sp-24);
+    machine->WriteRegister(4,args);
+    machine->WriteRegister(5,sp);
+
+    machine->Run();
+}
+
 void
 ExecProcess(void* arg) {
 
@@ -288,6 +304,38 @@ SyscallHandler(ExceptionType _et)
             delete executable;
             SpaceId pid = processTable->Add(newThread);
             newThread->Fork(ExecProcess,nullptr);
+            machine->WriteRegister(2,pid);
+            break;
+        }
+        case SC_EXEC2: {
+            int filenameAddr = machine->ReadRegister(4);
+            int argAddr      = machine->ReadRegister(5);
+            char** argv = SaveArgs(argAddr);
+            if (filenameAddr == 0) {
+                DEBUG('e', "Error: address to filename string is null");
+            }
+
+            char filename[FILE_NAME_MAX_LEN + 1];
+            if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
+                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+                break;
+            }
+            
+            DEBUG('e', "Filename : %s", filename);
+            OpenFile *executable = fileSystem->Open(filename);
+            if (executable == nullptr) {
+                machine->WriteRegister(2,-1);
+                break;
+            }
+
+            AddressSpace *space = new AddressSpace(executable);
+            Thread* newThread = new Thread("Exec created Thread",true);
+            newThread->space = space;
+
+            delete executable;
+            SpaceId pid = processTable->Add(newThread);
+            newThread->Fork(ExecProcess2,(void*)argv);
             machine->WriteRegister(2,pid);
             break;
         }

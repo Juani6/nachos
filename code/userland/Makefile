@@ -24,11 +24,11 @@ CPPFLAGS   = $(INCLUDE_DIRS)
 #CPPFLAGS = -P $(INCLUDE_DIRS)
 
 
-CC  = $(GCC_PREFIX)gcc-12
+CC  = $(GCC_PREFIX)gcc
 #CC  = $(GCC_PREFIX)gcc-10
 AS  = $(GCC_PREFIX)as
 LD  = $(GCC_PREFIX)ld
-CPP = $(GCC_PREFIX)cpp-12
+CPP = $(GCC_PREFIX)cpp
 #CPP = $(GCC_PREFIX)cpp-10
 
 INCLUDE_DIRS = -I../userprog -I../threads
