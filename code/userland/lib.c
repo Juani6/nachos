@@ -26,9 +26,7 @@ void puts2(const char *s) {
 	unsigned len = strlen(s);
 	if (len < 0) 
 		return;
-	char c = '\n';
 	Write(s,len,1);
-	Write(&c,1,1);
 	return;
 }
 
@@ -75,4 +73,12 @@ void itoa(int n, char* str) {
 
 	reverse(str,i);
 
+}
+
+void putInt(int x) {
+	char buff[4];
+	char j[] = "\n";
+	itoa(x,buff);
+	puts2(buff);
+	puts2(j);
 }

@@ -104,7 +104,7 @@ main(void)
     const OpenFileId OUTPUT = CONSOLE_OUTPUT;
     char             line[MAX_LINE_SIZE];
     char            *argv[MAX_ARG_COUNT];
-
+    const char lineJump[] = "\n";
     for (;;) {
         WritePrompt(OUTPUT);
         const unsigned lineSize = ReadLine(line, MAX_LINE_SIZE, INPUT);
@@ -135,6 +135,7 @@ main(void)
         //       call handler you made, it will never give an error?; what
         //       happens if tomorrow the implementation changes and new
         //       error conditions appear?
+        Write(lineJump, sizeof lineJump, OUTPUT);
     }
 
     // Never reached.

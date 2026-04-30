@@ -37,7 +37,7 @@ CFLAGS       = -std=c99 -G 0 -c $(INCLUDE_DIRS) -mips1 -mfp32 \
 
 PROGRAMS = echo filetest halt matmult shell sort tinyshell touch exitTest
 
-PROGS_WITH_LIB = libTest
+PROGS_WITH_LIB = libTest cat cp rm
 
 LIB_OBJ = lib.o
 

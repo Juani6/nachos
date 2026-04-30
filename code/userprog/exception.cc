@@ -148,7 +148,10 @@ SyscallHandler(ExceptionType _et)
             }
             
             OpenFile *f = fileSystem->Open(filename);
-            ASSERT(f);
+            if (f == nullptr) {
+                machine->WriteRegister(2,-1);
+                break;
+            }
             
             OpenFileId fd = currentThread->fdTable->Add(f);
             if (fd == -1){
@@ -164,8 +167,10 @@ SyscallHandler(ExceptionType _et)
             
             if (currentThread->fdTable->HasKey(fid))
                 machine->WriteRegister(2,0);
-            else 
+            else { 
                 machine->WriteRegister(2,-1);
+                break;
+            }
             
             OpenFile *file = currentThread->fdTable->Remove(fid); 
             delete file;
@@ -185,6 +190,12 @@ SyscallHandler(ExceptionType _et)
 
             bool err = fileSystem->Remove(filename);
             DEBUG('e', "Intentando eliminar %s [%s] \n",filename, err ? "true" : "false");
+            if (err) {
+                machine->WriteRegister(2,0);
+            }
+            else {
+                machine->WriteRegister(2,-1);
+            }
             break;
         }
         case SC_READ: {
@@ -220,8 +231,13 @@ SyscallHandler(ExceptionType _et)
             ASSERT(f);
 
             readBytes = f->Read(auxBuff,size);
-
-            WriteBufferToUser(auxBuff, buffAddr, readBytes);
+            DEBUG('e',"%d readed bytes\n",readBytes);
+            
+            if (readBytes > 0) {
+                WriteBufferToUser(auxBuff, buffAddr, readBytes);
+                break;
+            } 
+                
             delete[] auxBuff;
             machine->WriteRegister(2, readBytes);
 
@@ -236,7 +252,9 @@ SyscallHandler(ExceptionType _et)
             int writeBytes;
             if (fid == CONSOLE_OUTPUT) {
                 char c;
-                ReadBufferFromUser(buffAddr, auxBuff, size);    
+                DEBUG('e', "Size = %d\n", size);
+                ReadBufferFromUser(buffAddr, auxBuff, size);
+                //DEBUG('e', "User buffer : %s\n",auxBuff);    
                 for(writeBytes = 0; writeBytes < size; writeBytes++) {
                     c = auxBuff[writeBytes];
                     synchConsole->PutChar(c);
