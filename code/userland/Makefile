@@ -37,14 +37,17 @@ CFLAGS       = -std=c99 -G 0 -c $(INCLUDE_DIRS) -mips1 -mfp32 \
 
 PROGRAMS = echo filetest halt matmult shell sort tinyshell touch exitTest
 
+PROGS_WITH_LIB = libTest
+
+LIB_OBJ = lib.o
 
 .PHONY: all clean
 
-all: $(PROGRAMS)
+all: $(PROGRAMS) $(PROGS_WITH_LIB)
 
 clean:
 	@echo ":: Cleaning $$(tput bold)$(notdir $(CURDIR))$$(tput sgr0)"
-	@$(RM) *.o *.coff $(PROGRAMS) || true
+	@$(RM) *.o *.coff $(PROGRAMS) $(PROGS_WITH_LIB)|| true
 	@$(RM) SWAP.* || true
 
 start.o: start.s ../userprog/syscall.h
@@ -62,7 +65,18 @@ start.o: start.s ../userprog/syscall.h
 	@echo ":: Compiling $$(tput bold)$@$$(tput sgr0)"
 	@$(CC) $(CFLAGS) -c $^
 
-$(PROGRAMS): %: %.o start.o
+lib.o: lib.c lib.h
+	@echo ":: Compiling $$(tput bold)$@$$(tput sgr0)"
+	@$(CC) $(CFLAGS) -c lib.c
+
+$(PROGRAMS): %: %.o start.o 
 	@echo ":: Linking and converting $$(tput bold)$@$$(tput sgr0)"
 	@$(LD) $(LDFLAGS) start.o $*.o -o $*.coff
+	@../bin/coff2noff $*.coff $@
+
+
+# Regla para programas que necesitan lib.o
+$(PROGS_WITH_LIB): %: %.o start.o $(LIB_OBJ)
+	@echo ":: Linking $$(tput bold)$@$$(tput sgr0) (Con lib)"
+	@$(LD) $(LDFLAGS) start.o $(LIB_OBJ) $*.o -o $*.coff
 	@../bin/coff2noff $*.coff $@
