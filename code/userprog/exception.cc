@@ -249,8 +249,12 @@ SyscallHandler(ExceptionType _et)
         case SC_EXIT: {
             int exitStatus = machine->ReadRegister(4);
             currentThread->exitStatus = exitStatus;
+            
+            // Limpiamos el adressSpace
             delete currentThread->space;
             currentThread->space = nullptr;
+            
+            // Limpiamos la tabla de FD
             OpenFile* temp;
             for(unsigned i = 2; i < Table<OpenFile*>::SIZE ; i++) {
                 if (currentThread->fdTable->HasKey(i)) {
@@ -301,8 +305,8 @@ SyscallHandler(ExceptionType _et)
                 break;
             }
 
-            int exitStatus = hijo->Join();
             processTable->Remove(pid);
+            int exitStatus = hijo->Join();
             machine->WriteRegister(2,exitStatus);
             break;
         }

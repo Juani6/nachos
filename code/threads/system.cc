@@ -219,13 +219,6 @@ void
 Cleanup()
 {
     DEBUG('i', "Cleaning up...\n");
-
-#ifdef USER_PROGRAM
-    delete machine;
-    delete synchConsole;
-    delete mMapLock;
-#endif
-
 #ifdef FILESYS_NEEDED
     delete fileSystem;
 #endif
@@ -243,30 +236,18 @@ Cleanup()
     Thread *t = currentThread;
     currentThread = NULL;
     
-    #ifdef USER_PROGRAM
-    Thread* temp;
-    for(unsigned i = 0; i < Table<Thread*>::SIZE ; i++) {
-        if (processTable->HasKey(i)) {
-            temp = processTable->Remove(i);
-            delete temp;
-        }
-    }
-    
-    delete processTable;
-
-    if (t->space == nullptr)
-        delete t;
-    else {
+#ifdef USER_PROGRAM
+    delete machine;
+    delete synchConsole;
+    delete mMapLock;
+    if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
-        delete t;
-        }
-    delete memoryMap;
-    // Limpiamos los zombies de la tabla de procesos
-    
-    #else
-        delete t; 
-    #endif
+    }
+    delete processTable;
+    delete memoryMap; 
+#endif
+    delete t;
     
 
     exit(0);
