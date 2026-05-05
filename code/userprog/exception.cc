@@ -347,7 +347,7 @@ SyscallHandler(ExceptionType _et)
                 break;
             }
             
-            DEBUG('e', "Filename : %s", filename);
+            DEBUG('e', "Filename : %s\n", filename);
             OpenFile *executable = fileSystem->Open(filename);
             if (executable == nullptr) {
                 machine->WriteRegister(2,-1);
