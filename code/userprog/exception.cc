@@ -29,7 +29,7 @@
 #include "args.hh"
 
 #include <stdio.h>
-
+#include <string.h>
 
 static void
 IncrementPC()
@@ -89,7 +89,6 @@ ExecProcess2(void* arg) {
     machine->WriteRegister(STACK_REG,sp-24);
     machine->WriteRegister(4,args);
     machine->WriteRegister(5,sp);
-
     machine->Run();
 }
 
@@ -320,11 +319,15 @@ SyscallHandler(ExceptionType _et)
             }
 
             AddressSpace *space = new AddressSpace(executable);
-            Thread* newThread = new Thread("Exec created Thread",true);
+            filename[sizeof filename-1] = '\0';
+            char* name = strdup(filename);
+            Thread* newThread = new Thread(name,true);
             newThread->space = space;
 
             delete executable;
+            pTLock->Acquire();
             SpaceId pid = processTable->Add(newThread);
+            pTLock->Release();
             newThread->Fork(ExecProcess,nullptr);
             machine->WriteRegister(2,pid);
             break;
@@ -352,28 +355,48 @@ SyscallHandler(ExceptionType _et)
             }
 
             AddressSpace *space = new AddressSpace(executable);
-            Thread* newThread = new Thread("Exec created Thread",true);
+            filename[FILE_NAME_MAX_LEN] = '\0';
+            char* name = strdup(filename);
+            Thread* newThread = new Thread(name,true);
             newThread->space = space;
 
             delete executable;
+            pTLock->Acquire();
             SpaceId pid = processTable->Add(newThread);
-            newThread->Fork(ExecProcess2,(void*)argv);
+            pTLock->Release();
             machine->WriteRegister(2,pid);
+            newThread->Fork(ExecProcess2,(void*)argv);
             break;
         }
         case SC_JOIN: {
             int pid = machine->ReadRegister(4);
+            if (pid < 0 || Table<Thread*>::SIZE > pid ) {
+                DEBUG('e', "Pid invalido\n");
+                machine->WriteRegister(2,-1);
+                break;
+            }
+            
+            pTLock->Acquire();
             Thread* hijo = processTable->Get(pid);
+            pTLock->Release();
             ASSERT(hijo != nullptr);
             
             if(!hijo->IsJoinable()) {
                 fprintf(stderr, "Thread not joinable\n");
                 break;
             }
-
-            processTable->Remove(pid);
             int exitStatus = hijo->Join();
+            pTLock->Acquire();
+            processTable->Remove(pid);
+            pTLock->Release();
             machine->WriteRegister(2,exitStatus);
+            break;
+        }
+        case SC_GETPT: {
+            int buffAdr = machine->ReadRegister(4);
+            DEBUG('e', "Address : &d\n",buffAdr);
+            int pf = writeProcessDataToUser(buffAdr);
+            machine->WriteRegister(2,pf);
             break;
         }
         default:

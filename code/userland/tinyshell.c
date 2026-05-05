@@ -21,7 +21,7 @@ main(void)
 
         if (i > 0) {
             if (buffer[0] == '&') {
-                newProc = Exec(buffer);
+                newProc = Exec(buffer + 1);
             }
             else {
                 newProc = Exec(buffer); 

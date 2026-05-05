@@ -86,6 +86,7 @@ Thread::~Thread()
     /// EJ 4 Plancha 2
     #ifdef USER_PROGRAM    
         delete fdTable;
+        delete name;
     #endif
     
     if(joinable)

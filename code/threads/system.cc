@@ -42,6 +42,7 @@ Bitmap* memoryMap;
 Machine *machine;  ///< User program memory and registers.
 SynchConsole *synchConsole;
 Table<Thread*> *processTable;
+Lock* pTLock;
 Lock* mMapLock;
 #endif
 
@@ -197,7 +198,10 @@ Initialize(int argc, char **argv)
     machine = new Machine(d, numPhysicalPages);  // This must come first.
     synchConsole = new SynchConsole();
 
+    pTLock = new Lock("Process table lock");
     processTable = new Table<Thread*>;
+    processTable->Add(currentThread);
+
     memoryMap = new Bitmap(numPhysicalPages);
     mMapLock = new Lock("Lock for the memory map");
     SetExceptionHandlers();
@@ -239,13 +243,14 @@ Cleanup()
 #ifdef USER_PROGRAM
     delete machine;
     delete synchConsole;
-    delete mMapLock;
     if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
     }
     delete processTable;
+    delete pTLock;
     delete memoryMap; 
+    delete mMapLock;
 #endif
     delete t;
     

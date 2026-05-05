@@ -69,6 +69,14 @@ Exec2:
         j       $31
         .end    Exec2
 
+        .globl  getPT
+        .ent    getPT
+getPT:
+        addiu   $2, $0, SC_GETPT
+        syscall
+        j       $31
+        .end    getPT
+
         .globl  Join
         .ent    Join
 Join:

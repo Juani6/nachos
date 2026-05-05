@@ -42,6 +42,7 @@ extern Lock* mMapLock;
 extern Machine *machine;  // User program memory and registers.
 #include "userprog/synchconsole.hh"
 extern SynchConsole *synchConsole;
+extern Lock* pTLock;
 extern Table<Thread*> *processTable;
 #endif
 

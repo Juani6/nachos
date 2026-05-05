@@ -6,7 +6,7 @@
 #include "transfer.hh"
 #include "lib/utility.hh"
 #include "threads/system.hh"
-
+#include "process_data.h"
 
 void ReadBufferFromUser(int userAddress, char *outBuffer,
                         unsigned byteCount)
@@ -70,4 +70,46 @@ void WriteStringToUser(const char *string, int userAddress)
         temp = *string;
         ASSERT(machine->WriteMem(userAddress++,1,temp));
     } while (*string++ != '\0');
+}
+
+int writeProcessDataToUser(int userAddress) {
+    ASSERT(userAddress != 0);
+    
+    struct _processData* temp = new struct _processData;
+    Thread * aux;
+    int foundProcesses = 0;
+    unsigned size = sizeof(struct _processData);
+    int actualUserAddress;
+    int j;
+    
+    for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
+        aux = processTable->Get(i);
+        if (aux == nullptr) {
+            continue;
+        }
+        actualUserAddress = userAddress + foundProcesses * size;
+        
+        temp->pid    = i;
+        temp->status = (int) aux->GetStatus();
+        const char* name = aux->GetName();
+        
+        // Limpiamos el nombre de la estructura auxiliar
+        /* for (int k = 0; k < FILE_NAME_MAX_LEN + 1; k++) {
+            temp->name[k] = '\0';
+        } */
+        // Copiamos el nombre del hilo
+        if (name != nullptr) {
+            for(j = 0; name[j] != '\0' && j < FILE_NAME_MAX_LEN; j++) {
+                temp->name[j] = name[j]; 
+            }
+        temp->name[j] = '\0';
+        }
+        for (int k = 0; k < size; k++) {
+            ASSERT(machine->WriteMem(actualUserAddress + k, 1, ((char*)temp)[k]));
+        }
+        
+        foundProcesses++;
+        }
+    delete temp;
+    return foundProcesses;
 }

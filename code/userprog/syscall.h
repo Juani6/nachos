@@ -32,9 +32,11 @@
 #define SC_READ    14
 #define SC_WRITE   15
 #define SC_EXEC2   16
-
+#define SC_GETPT   17
 
 #ifndef IN_ASM
+
+
 
 /// The system call interface.  These are the operations the Nachos kernel
 /// needs to support, to be able to run user programs.
@@ -130,6 +132,9 @@ int Read(char *buffer, int size, OpenFileId id);
 /// Close the file, we are done reading and writing to it.
 int Close(OpenFileId id);
 
+// Sends the actual table process information to the userland
+// returns -1 on error and 0 on success
+int getPT(char *buffer);
 
 #endif
 

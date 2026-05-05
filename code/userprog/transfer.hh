@@ -22,5 +22,7 @@ void WriteBufferToUser(const char *buffer, int userAddress,
 /// Copy a C string from host to virtual machine.
 void WriteStringToUser(const char *string, int userAddress);
 
-
+// Copy the processTable data to the userAdress
+// returns the number of founds process found
+int writeProcessDataToUser(int userAddress);
 #endif

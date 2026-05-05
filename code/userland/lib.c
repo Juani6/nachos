@@ -3,7 +3,7 @@
 
 unsigned strlen(const char *s) {
 	if (s == NULL)
-		return -1;
+		return 0;
 	
 	unsigned i = 0;
 	for(;s[i] != '\0'; i++);
@@ -24,7 +24,7 @@ unsigned strCopy(const char *source, char *destiny) {
 
 void puts2(const char *s) {
 	unsigned len = strlen(s);
-	if (len < 0) 
+	if (len < 1) 
 		return;
 	Write(s,len,1);
 	return;
@@ -76,9 +76,7 @@ void itoa(int n, char* str) {
 }
 
 void putInt(int x) {
-	char buff[4];
-	char j[] = "\n";
+	char buff[12]; 
 	itoa(x,buff);
 	puts2(buff);
-	puts2(j);
 }
