@@ -31,7 +31,6 @@ void threadStatePrint(int i) {
 
 void processPrint(struct _processData* data) {
 	if (data != NULL) {
-
 		puts2("PID:"); putInt(data->pid);puts2("\t");
 		if (strlen(data->name) > 0) {
 			puts2("NAME:"); puts2(data->name);puts2("\t");
@@ -52,7 +51,7 @@ void processPrint(struct _processData* data) {
 int main(void) {
 	struct _processData lista[20];
 	int cantProcesos = getPT((char*)lista);
-	
+	puts2("\n");
 	 for(int i = 0; i < cantProcesos; i++) {
 		if (&lista[i] != NULL)
 			processPrint(&lista[i]);

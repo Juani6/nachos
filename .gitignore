@@ -14,6 +14,7 @@
 /code/**/nachos
 # Quiero ignorar los programas de usuario (que no tienen extension) pero no su codigo fuente y archivos utiles
 /code/userland/*
+!/code/userland/*.h
 !/code/userland/*.c
 !/code/userland/*.s
 !/code/userland/Makefile

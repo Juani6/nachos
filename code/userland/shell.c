@@ -124,7 +124,7 @@ main(void)
         // TODO: check for errors when calling `Exec`; this depends on how
         //       errors are reported.
         if (line[0] == '&') {
-            const SpaceId newProc = Exec2(line+1,argv);
+            //const SpaceId newProc = Exec2(line+1,argv);
         }
         else {
             const SpaceId newProc = Exec2(line,argv);

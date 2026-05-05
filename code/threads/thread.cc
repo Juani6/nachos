@@ -398,4 +398,18 @@ Thread::RestoreUserState()
     }
 }
 
+#ifdef USER_PROGRAM
+int
+Thread::GetExitStatus() {
+    return exitStatus;
+}
+
+void
+Thread::SetExitStatus(int s) {
+    exitStatus = s;
+}
+
+#endif
+
+
 #endif

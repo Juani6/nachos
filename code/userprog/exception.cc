@@ -281,7 +281,7 @@ SyscallHandler(ExceptionType _et)
         }
         case SC_EXIT: {
             int exitStatus = machine->ReadRegister(4);
-            currentThread->exitStatus = exitStatus;
+            currentThread->SetExitStatus(exitStatus);
             
             // Limpiamos el adressSpace
             delete currentThread->space;
@@ -370,7 +370,7 @@ SyscallHandler(ExceptionType _et)
         }
         case SC_JOIN: {
             int pid = machine->ReadRegister(4);
-            if (pid < 0 || Table<Thread*>::SIZE > pid ) {
+            if (pid < 0 || Table<Thread*>::SIZE < pid ) {
                 DEBUG('e', "Pid invalido\n");
                 machine->WriteRegister(2,-1);
                 break;
@@ -383,6 +383,7 @@ SyscallHandler(ExceptionType _et)
             
             if(!hijo->IsJoinable()) {
                 fprintf(stderr, "Thread not joinable\n");
+                machine->WriteRegister(2,-1);
                 break;
             }
             int exitStatus = hijo->Join();

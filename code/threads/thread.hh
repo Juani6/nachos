@@ -140,10 +140,10 @@ public:
     /// EJ 5 Plancha 2
     int GetPriority();
     void SetPriority(int p);
-		// 5b 
+	// 5b 
     int GetOriginalPriority();
 
-    int exitStatus;
+    
     
 	ThreadStatus GetStatus();
 private:
@@ -167,6 +167,8 @@ private:
     /// EJ 5
     int priority;
     int originalPriority;
+
+
     /// Allocate a stack for thread.  Used internally by `Fork`.
     void StackAllocate(VoidFunctionPtr func, void *arg);
 #ifdef USER_PROGRAM
@@ -176,7 +178,14 @@ private:
     /// registers -- one for its state while executing user code, one for its
     /// state while executing kernel code.
     int userRegisters[NUM_TOTAL_REGS];
+    // Plancha 3 
+    typedef int SpaceId;
+    int exitStatus;
+    SpaceId pid;
 public:
+    int GetExitStatus();
+    void SetExitStatus(int s);
+    
     // Tabla de file descriptors
     Table<OpenFile*>* fdTable;
     // Save user-level register state.
