@@ -297,40 +297,6 @@ SyscallHandler(ExceptionType _et)
             currentThread->Finish();
             break;
         }
-        /* case SC_EXEC: {
-            int filenameAddr = machine->ReadRegister(4);
-            if (filenameAddr == 0) {
-                DEBUG('e', "Error: address to filename string is null");
-            }
-
-            char filename[FILE_NAME_MAX_LEN + 1];
-            if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
-                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                      FILE_NAME_MAX_LEN);
-                break;
-            }
-            
-            DEBUG('e', "Filename : %s", filename);
-            OpenFile *executable = fileSystem->Open(filename);
-            if (executable == nullptr) {
-                machine->WriteRegister(2,-1);
-                break;
-            }
-
-            AddressSpace *space = new AddressSpace(executable);
-            filename[sizeof filename-1] = '\0';
-            char* name = strdup(filename);
-            Thread* newThread = new Thread(name,true);
-            newThread->space = space;
-
-            delete executable;
-            pTLock->Acquire();
-            SpaceId pid = processTable->Add(newThread);
-            pTLock->Release();
-            newThread->Fork(ExecProcess,nullptr);
-            machine->WriteRegister(2,pid);
-            break;
-        } */
         case SC_EXEC: {
             int filenameAddr = machine->ReadRegister(4);
             int argAddr      = machine->ReadRegister(5);
