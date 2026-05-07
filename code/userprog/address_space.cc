@@ -14,6 +14,8 @@
 
 enum exeRead {DATA, CODE};
 
+
+//Setea los bloques de Data o Code previo a ejecutar un proceso
 static void ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTable,Executable exe,exeRead data ) {
     
     // Este ASSERT es por las dudas
@@ -120,7 +122,6 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
         uint32_t virtualAddr = exe.GetInitDataAddr();
         DEBUG('a', "Initializing data segment, at 0x%X, size %u\n",
               virtualAddr, initDataSize);
-        // ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTable,Executable exe,exeRead data )
         ExeRead(virtualAddr,initDataSize,pageTable,exe,DATA);
          
     }

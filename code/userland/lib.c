@@ -13,7 +13,7 @@ unsigned strlen(const char *s) {
 
 unsigned strCopy(const char *source, char *destiny) {
 	if (destiny == NULL && source == NULL)
-		return;
+		return 0;
 	unsigned i = 0;
 	for(; source[i] != '\0'; i++) {
 		destiny[i] = source[i];

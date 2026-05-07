@@ -1,4 +1,5 @@
 #include "../userprog/syscall.h"
+#include "lib.h"
 
 int
 main(void)
@@ -21,10 +22,10 @@ main(void)
 
         if (i > 0) {
             if (buffer[0] == '&') {
-                newProc = Exec(buffer + 1);
+                newProc = Exec(buffer + 1,NULL);
             }
             else {
-                newProc = Exec(buffer); 
+                newProc = Exec(buffer,NULL); 
                 Join(newProc);
             }
         }

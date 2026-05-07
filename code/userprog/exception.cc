@@ -79,26 +79,22 @@ DefaultHandler(ExceptionType et)
 /// And do not forget to increment the program counter before returning. (Or
 /// else you will loop making the same system call forever!)
 void
-ExecProcess2(void* arg) {
-    char** argv = (char**)arg;
+ExecProcess(void* arg) {
     
     currentThread->space->InitRegisters();
     currentThread->space->RestoreState();
-    int args = WriteArgs(argv);
-    int sp = machine->ReadRegister(STACK_REG);
-    machine->WriteRegister(STACK_REG,sp-24);
-    machine->WriteRegister(4,args);
-    machine->WriteRegister(5,sp);
+    if(arg){
+        char** argv = (char**)arg;
+        int args = WriteArgs(argv);
+        int sp = machine->ReadRegister(STACK_REG);
+        machine->WriteRegister(STACK_REG,sp-24);
+        machine->WriteRegister(4,args);
+        machine->WriteRegister(5,sp);
+    }
+
     machine->Run();
 }
 
-void
-ExecProcess(void* arg) {
-
-    currentThread->space->InitRegisters();
-    currentThread->space->RestoreState();
-    machine->Run();
-}
 
 static void
 SyscallHandler(ExceptionType _et)
@@ -148,7 +144,7 @@ SyscallHandler(ExceptionType _et)
             
             OpenFile *f = fileSystem->Open(filename);
             if (f == nullptr) {
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
             
@@ -167,7 +163,7 @@ SyscallHandler(ExceptionType _et)
             if (currentThread->fdTable->HasKey(fid))
                 machine->WriteRegister(2,0);
             else { 
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
             
@@ -193,7 +189,7 @@ SyscallHandler(ExceptionType _et)
                 machine->WriteRegister(2,0);
             }
             else {
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
             }
             break;
         }
@@ -224,10 +220,13 @@ SyscallHandler(ExceptionType _et)
             if (f == nullptr) {
                 DEBUG('e', "Fd invalido\n");
                 delete []auxBuff;
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
-            ASSERT(f);
+            if(!f){
+                machine->WriteRegister(2,SC_ERROR);
+                break;
+            }
 
             readBytes = f->Read(auxBuff,size);
             DEBUG('e',"%d readed bytes\n",readBytes);
@@ -267,7 +266,7 @@ SyscallHandler(ExceptionType _et)
             if (f == nullptr) {
                 DEBUG('e', "Fd invalido\n");
                 delete []auxBuff;
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
 
@@ -298,7 +297,7 @@ SyscallHandler(ExceptionType _et)
             currentThread->Finish();
             break;
         }
-        case SC_EXEC: {
+        /* case SC_EXEC: {
             int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null");
@@ -331,11 +330,15 @@ SyscallHandler(ExceptionType _et)
             newThread->Fork(ExecProcess,nullptr);
             machine->WriteRegister(2,pid);
             break;
-        }
-        case SC_EXEC2: {
+        } */
+        case SC_EXEC: {
             int filenameAddr = machine->ReadRegister(4);
             int argAddr      = machine->ReadRegister(5);
-            char** argv = SaveArgs(argAddr);
+            DEBUG('e',"argAddr:%d\n",argAddr);
+            char** argv;
+            if(argAddr){
+                argv = SaveArgs(argAddr);
+            }else {argv = nullptr;}
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null");
             }
@@ -350,7 +353,7 @@ SyscallHandler(ExceptionType _et)
             DEBUG('e', "Filename : %s\n", filename);
             OpenFile *executable = fileSystem->Open(filename);
             if (executable == nullptr) {
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
 
@@ -365,25 +368,29 @@ SyscallHandler(ExceptionType _et)
             SpaceId pid = processTable->Add(newThread);
             pTLock->Release();
             machine->WriteRegister(2,pid);
-            newThread->Fork(ExecProcess2,(void*)argv);
+           
+            newThread->Fork(ExecProcess,(void*)argv);
             break;
         }
         case SC_JOIN: {
             int pid = machine->ReadRegister(4);
             if (pid < 0 || Table<Thread*>::SIZE < pid ) {
                 DEBUG('e', "Pid invalido\n");
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
             
             pTLock->Acquire();
             Thread* hijo = processTable->Get(pid);
             pTLock->Release();
-            ASSERT(hijo != nullptr);
+            if(!hijo){
+                machine->WriteRegister(2,SC_ERROR);
+                break;
+            }
             
             if(!hijo->IsJoinable()) {
                 fprintf(stderr, "Thread not joinable\n");
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
                 break;
             }
             int exitStatus = hijo->Join();
