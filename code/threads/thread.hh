@@ -179,9 +179,7 @@ private:
     /// state while executing kernel code.
     int userRegisters[NUM_TOTAL_REGS];
     // Plancha 3 
-    typedef int SpaceId;
     int exitStatus;
-    SpaceId pid;
 public:
     int GetExitStatus();
     void SetExitStatus(int s);
