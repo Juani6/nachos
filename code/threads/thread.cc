@@ -28,6 +28,7 @@
 
 #ifdef USER_PROGRAM
 #include "userprog/syscall.h"
+#include <stdlib.h>
 #endif
 
 /// This is put at the top of the execution stack, for detecting stack
@@ -86,7 +87,6 @@ Thread::~Thread()
     /// EJ 4 Plancha 2
     #ifdef USER_PROGRAM    
         delete fdTable;
-        delete name;
     #endif
     
     if(joinable)
@@ -94,6 +94,8 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != nullptr) {
         SystemDep::DeallocBoundedArray((char *) stack, STACK_SIZE * sizeof *stack);
+        stack = nullptr;
+        stackTop = nullptr;
     }
 }
 

@@ -241,12 +241,26 @@ Cleanup()
     currentThread = NULL;
     
 #ifdef USER_PROGRAM
+    if (threadToBeDestroyed != nullptr) {
+        delete threadToBeDestroyed ;
+        threadToBeDestroyed = nullptr;
+    }
     delete machine;
     delete synchConsole;
     if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
     }
+    
+    for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
+        if (processTable->HasKey(i)) {
+            Thread* th = processTable->Remove(i);
+            if (th != nullptr && th != t) {
+                delete th;
+            }
+        }
+    }
+    
     delete processTable;
     delete pTLock;
     delete memoryMap; 

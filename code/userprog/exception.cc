@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 static void
 IncrementPC()
@@ -283,6 +284,7 @@ SyscallHandler(ExceptionType _et)
             currentThread->SetExitStatus(exitStatus);
             
             // Limpiamos el adressSpace
+            free((void*)currentThread->GetName());
             delete currentThread->space;
             currentThread->space = nullptr;
             
