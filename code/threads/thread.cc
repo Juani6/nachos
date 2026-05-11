@@ -28,7 +28,6 @@
 
 #ifdef USER_PROGRAM
 #include "userprog/syscall.h"
-#include <stdlib.h>
 #endif
 
 /// This is put at the top of the execution stack, for detecting stack
@@ -84,14 +83,31 @@ Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
+    // Limpiamos el adressSpace
+#ifdef USER_PROGRAM
+    if (space != nullptr) {
+        
+        delete space;
+        space = nullptr;
+        
+        // Limpiamos la tabla de FD
+        OpenFile* temp;
+        for(unsigned i = 2; i < Table<OpenFile*>::SIZE ; i++) {
+            if (fdTable->HasKey(i)) {
+                temp = fdTable->Remove(i);
+                delete temp;
+            }
+        }
+    }
     /// EJ 4 Plancha 2
-    #ifdef USER_PROGRAM    
-        delete fdTable;
-    #endif
+    delete fdTable;
+#endif
     
     if(joinable)
         delete pipe;
+
     ASSERT(this != currentThread);
+    
     if (stack != nullptr) {
         SystemDep::DeallocBoundedArray((char *) stack, STACK_SIZE * sizeof *stack);
         stack = nullptr;
@@ -288,8 +304,8 @@ InterruptEnable()
 {
     interrupt->Enable();
     if (threadToBeDestroyed!=nullptr) {
-       delete threadToBeDestroyed;
-       threadToBeDestroyed = nullptr;
+        delete threadToBeDestroyed;
+        threadToBeDestroyed = nullptr;
     }
 }
 
@@ -341,9 +357,8 @@ Thread::Join()
 	
     /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_EXIT*/
 #ifndef USER_PROGRAM
-    if (this == threadToBeDestroyed)
-        threadToBeDestroyed = nullptr;
-    delete this;
+    threadToBeDestroyed = this;
+    this->Finish();
 #endif
     return sonStatus;
 }

@@ -283,19 +283,7 @@ SyscallHandler(ExceptionType _et)
             int exitStatus = machine->ReadRegister(4);
             currentThread->SetExitStatus(exitStatus);
             
-            // Limpiamos el adressSpace
-            free((void*)currentThread->GetName());
-            delete currentThread->space;
-            currentThread->space = nullptr;
             
-            // Limpiamos la tabla de FD
-            OpenFile* temp;
-            for(unsigned i = 2; i < Table<OpenFile*>::SIZE ; i++) {
-                if (currentThread->fdTable->HasKey(i)) {
-                    temp = currentThread->fdTable->Remove(i);
-                    delete temp;
-                }
-            }
             currentThread->Finish();
             break;
         }
@@ -350,6 +338,7 @@ SyscallHandler(ExceptionType _et)
             
             pTLock->Acquire();
             Thread* hijo = processTable->Get(pid);
+            const char* sonName = hijo->GetName();
             pTLock->Release();
             if(!hijo){
                 machine->WriteRegister(2,SC_ERROR);
@@ -362,9 +351,12 @@ SyscallHandler(ExceptionType _et)
                 break;
             }
             int exitStatus = hijo->Join();
+            
             pTLock->Acquire();
             processTable->Remove(pid);
+            free((char*)sonName);
             pTLock->Release();
+            
             machine->WriteRegister(2,exitStatus);
             break;
         }

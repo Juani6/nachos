@@ -241,17 +241,14 @@ Cleanup()
     currentThread = NULL;
     
 #ifdef USER_PROGRAM
-    if (threadToBeDestroyed != nullptr) {
-        delete threadToBeDestroyed ;
-        threadToBeDestroyed = nullptr;
-    }
-    delete machine;
-    delete synchConsole;
+
+    // Esto lo tenemos que eliminar aca para poder eliminar el addresSpace despues
     if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
+        free((char*)t->GetName());
     }
-    
+
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
         if (processTable->HasKey(i)) {
             Thread* th = processTable->Remove(i);
@@ -260,11 +257,13 @@ Cleanup()
             }
         }
     }
-    
-    delete processTable;
-    delete pTLock;
     delete memoryMap; 
     delete mMapLock;
+    
+    delete machine;
+    delete synchConsole;
+    delete processTable;
+    delete pTLock;
 #endif
     delete t;
     
