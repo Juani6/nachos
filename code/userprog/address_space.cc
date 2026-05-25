@@ -59,7 +59,6 @@ static void ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTab
 /// and we have a single unsegmented page table.
 AddressSpace::AddressSpace(OpenFile *executable_file)
 {
-    lastTLBEntry = 0;
     ASSERT(executable_file != nullptr);
 
     Executable exe (executable_file);

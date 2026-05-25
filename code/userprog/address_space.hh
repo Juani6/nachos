@@ -48,7 +48,6 @@ public:
     void RestoreState();
 
     TranslationEntry *GetPageTable();
-    unsigned lastTLBEntry;
 private:
 
     /// Assume linear page table translation for now!

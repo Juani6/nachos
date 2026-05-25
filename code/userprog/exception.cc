@@ -380,6 +380,8 @@ static void
 PageFaultHandler(ExceptionType _et) {
     unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
     unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
+
+    stats->numPageFaults++;
     static unsigned tlb_index = 0;
     machine->GetMMU()->tlb[tlb_index] = currentThread->space->GetPageTable()[vpn];
     tlb_index = (tlb_index + 1) % TLB_SIZE;

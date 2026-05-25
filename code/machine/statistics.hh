@@ -47,6 +47,13 @@ public:
     /// Number of virtual memory page faults.
     unsigned long numPageFaults;
 
+    // Number of TLB hits
+    unsigned long numTLBHits;
+
+    // Number of TLB misses
+    unsigned long numTLBMisses;
+
+
 #ifdef DFS_TICKS_FIX
     /// Number of times the tick count gets reset.
     unsigned long tickResets;
