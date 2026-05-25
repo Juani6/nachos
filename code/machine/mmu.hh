@@ -15,7 +15,7 @@
 
 
 /// Definitions related to the size, and format of user memory.
-
+const unsigned TLB_TRIES = 4;
 const unsigned PAGE_SIZE = SECTOR_SIZE;  ///< Set the page size equal to the
                                          ///< disk sector size, for
                                          ///< simplicity.

@@ -376,6 +376,15 @@ SyscallHandler(ExceptionType _et)
     IncrementPC();
 }
 
+static void
+PageFaultHandler(ExceptionType _et) {
+    unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
+    unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
+    static unsigned tlb_index = 0;
+    machine->GetMMU()->tlb[tlb_index] = currentThread->space->GetPageTable()[vpn];
+    tlb_index = (tlb_index + 1) % TLB_SIZE;
+}
+/// currentThread->space->lastTLBEntry++ % TLB_SIZE
 
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.
@@ -384,7 +393,7 @@ SetExceptionHandlers()
 {
     machine->SetHandler(NO_EXCEPTION,            &DefaultHandler);
     machine->SetHandler(SYSCALL_EXCEPTION,       &SyscallHandler);
-    machine->SetHandler(PAGE_FAULT_EXCEPTION,    &DefaultHandler);
+    machine->SetHandler(PAGE_FAULT_EXCEPTION,    &PageFaultHandler);
     machine->SetHandler(READ_ONLY_EXCEPTION,     &DefaultHandler);
     machine->SetHandler(BUS_ERROR_EXCEPTION,     &DefaultHandler);
     machine->SetHandler(ADDRESS_ERROR_EXCEPTION, &DefaultHandler);

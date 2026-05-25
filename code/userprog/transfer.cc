@@ -16,10 +16,15 @@ void ReadBufferFromUser(int userAddress, char *outBuffer,
     ASSERT(byteCount != 0);
 
     unsigned count = 0;
+    unsigned tries;
     do {
+        tries = 0;
         int temp;
         count++;
-        ASSERT(machine->ReadMem(userAddress++,1,&temp));
+        do {
+            tries++;
+        } while (machine->ReadMem(userAddress,1,&temp) == false && tries < TLB_TRIES );
+        userAddress++;
         *outBuffer = (unsigned char) temp;
         outBuffer++; 
     } while (count < byteCount);
@@ -33,10 +38,16 @@ bool ReadStringFromUser(int userAddress, char *outString,
     ASSERT(maxByteCount != 0);
 
     unsigned count = 0;
+    unsigned tries;
     do {
+        tries = 0;
         int temp;
         count++;
-        ASSERT(machine->ReadMem(userAddress++, 1, &temp));
+        
+        do {
+            tries++;
+        } while (machine->ReadMem(userAddress,1,&temp) == false && tries < TLB_TRIES );
+        userAddress++;
         *outString = (unsigned char) temp;
     } while (*outString++ != '\0' && count < maxByteCount);
 
@@ -52,9 +63,14 @@ void WriteBufferToUser(const char *buffer, int userAddress,
 
     int temp;
     unsigned count = 0;
+    unsigned tries;
     do {
+        tries = 0;
         temp = *buffer;
-        ASSERT(machine->WriteMem(userAddress++,1,temp));
+        do {
+            tries++;
+        } while (machine->WriteMem(userAddress,1,temp) == false && tries < TLB_TRIES);
+        userAddress++;
         buffer++;
         count++;
     } while (count < byteCount);
@@ -66,9 +82,15 @@ void WriteStringToUser(const char *string, int userAddress)
     ASSERT(string != nullptr);
     ASSERT(userAddress != 0);
     int temp;
+    unsigned tries;
     do {
+        tries = 0;
         temp = *string;
-        ASSERT(machine->WriteMem(userAddress++,1,temp));
+        
+        do {
+            tries++;
+        } while (tries < TLB_TRIES && machine->WriteMem(userAddress,1,temp) == false);
+        userAddress++;
     } while (*string++ != '\0');
 }
 
@@ -81,7 +103,7 @@ int writeProcessDataToUser(int userAddress) {
     unsigned size = sizeof(struct _processData);
     int actualUserAddress;
     int j;
-    
+    unsigned tries;
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
         aux = processTable->Get(i);
         if (aux == nullptr) {
@@ -104,8 +126,12 @@ int writeProcessDataToUser(int userAddress) {
             }
         temp->name[j] = '\0';
         }
-        for (int k = 0; k < size; k++) {
-            ASSERT(machine->WriteMem(actualUserAddress + k, 1, ((char*)temp)[k]));
+        for (unsigned k = 0; k < size; k++) {
+            tries = 0;
+            do {
+                tries++;
+            } while ((machine->WriteMem(actualUserAddress + k, 1, ((char*)temp)[k])) == false && tries < TLB_TRIES);
+
         }
         
         foundProcesses++;

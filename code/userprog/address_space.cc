@@ -59,6 +59,7 @@ static void ExeRead(uint32_t virtualAddr,uint32_t size,TranslationEntry* pageTab
 /// and we have a single unsegmented page table.
 AddressSpace::AddressSpace(OpenFile *executable_file)
 {
+    lastTLBEntry = 0;
     ASSERT(executable_file != nullptr);
 
     Executable exe (executable_file);
@@ -182,6 +183,17 @@ AddressSpace::SaveState()
 void
 AddressSpace::RestoreState()
 {
+    #ifndef USE_TLB
     machine->GetMMU()->pageTable     = pageTable;
     machine->GetMMU()->pageTableSize = numPages;
+    #else
+    for (unsigned i = 0; i < TLB_SIZE; i++) {
+        machine->GetMMU()->tlb[i].valid = false;
+    }
+    #endif
+}
+
+TranslationEntry*
+AddressSpace::GetPageTable() {
+    return pageTable;
 }
