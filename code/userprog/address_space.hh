@@ -16,7 +16,7 @@
 
 #include "filesys/file_system.hh"
 #include "machine/translation_entry.hh"
-
+#include "executable.hh"
 
 const unsigned USER_STACK_SIZE = 1024;  ///< Increase this as necessary!
 
@@ -48,10 +48,15 @@ public:
     void RestoreState();
 
     TranslationEntry *GetPageTable();
+
+    void LoadPage(unsigned vpn);
+    Executable* exe;
+    OpenFile* _executable_file;
 private:
 
     /// Assume linear page table translation for now!
     TranslationEntry *pageTable;
+    
 
     /// Number of pages in the virtual address space.
     unsigned numPages;

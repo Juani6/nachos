@@ -319,7 +319,6 @@ SyscallHandler(ExceptionType _et)
             Thread* newThread = new Thread(name,true);
             newThread->space = space;
 
-            delete executable;
             pTLock->Acquire();
             SpaceId pid = processTable->Add(newThread);
             pTLock->Release();
@@ -330,7 +329,7 @@ SyscallHandler(ExceptionType _et)
         }
         case SC_JOIN: {
             int pid = machine->ReadRegister(4);
-            if (pid < 0 || Table<Thread*>::SIZE < pid ) {
+            if (pid < 0 || Table<Thread*>::SIZE < (unsigned)pid ) {
                 DEBUG('e', "Pid invalido\n");
                 machine->WriteRegister(2,SC_ERROR);
                 break;
@@ -382,7 +381,13 @@ PageFaultHandler(ExceptionType _et) {
     unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
 
     stats->numPageFaults++;
+    DEBUG('a', "valid state: %d",currentThread->space->GetPageTable()[vpn].valid);
+    if (currentThread->space->GetPageTable()[vpn].physicalPage == -1) {
+        currentThread->space->LoadPage(vpn);
+    }
+
     static unsigned tlb_index = 0;
+    
     machine->GetMMU()->tlb[tlb_index] = currentThread->space->GetPageTable()[vpn];
     tlb_index = (tlb_index + 1) % TLB_SIZE;
 }

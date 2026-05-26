@@ -164,7 +164,7 @@ WriteFile(int fd, const char *buffer, size_t nBytes)
 /// Abort on error.
 void
 Lseek(int fd, int offset, int whence)
-{
+{   
     int retVal = lseek(fd, offset, whence);
     ASSERT(retVal >= 0);
 }

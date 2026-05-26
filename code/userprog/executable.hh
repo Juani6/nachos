@@ -24,7 +24,7 @@
 class Executable {
 public:
     Executable(OpenFile *new_file);
-
+    ~Executable() = default;
     /// Check if the executable is valid and fix endianness if necessary.
     ///
     /// Check if the executable conforms to the NOFF file format by checking
