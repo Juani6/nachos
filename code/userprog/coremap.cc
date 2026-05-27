@@ -15,12 +15,12 @@ CoreMap::~CoreMap() {
 
 uint32_t
 CoreMap::PhysAdrrToIdx(uint32_t physAddr) {
-	return physAddr / size;
+	return physAddr / PAGE_SIZE;
 }
 
 uint32_t
 CoreMap::IdxToPhysAddr(uint32_t idx) {
-	return idx * size;
+	return idx * PAGE_SIZE;
 }
 
 unsigned
