@@ -283,8 +283,23 @@ SyscallHandler(ExceptionType _et)
             int exitStatus = machine->ReadRegister(4);
             currentThread->SetExitStatus(exitStatus);
             
+            pTLock->Acquire();
+            int alive = 0;
+            for (int i = 0; i < Table<Thread*>::SIZE; i++) {
+                if (processTable->Get(i) != nullptr) {
+                    alive++;
+                }
+            }
+            pTLock->Release();
             
-            currentThread->Finish();
+            if (alive > 1) {
+                currentThread->Finish();
+            }
+            // Si no hay procesos activos terminamos
+            else { 
+
+                interrupt->Halt();
+            }
             break;
         }
         case SC_EXEC: {

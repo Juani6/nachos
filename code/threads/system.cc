@@ -191,7 +191,13 @@ Initialize(int argc, char **argv)
     // We did not explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a `Thread`
     // object to save its state.
+    #ifdef USER_PROGRAM
+    char staticnNameMain[] = "main";
+    char *nameMain = strdup(staticnNameMain);
+    currentThread = new Thread(nameMain,0);
+    #else
     currentThread = new Thread("main",0);
+    #endif
     currentThread->SetStatus(RUNNING);
 
     interrupt->Enable();
