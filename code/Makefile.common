@@ -97,6 +97,7 @@ USERPROG_HDR = userprog/address_space.hh            \
 							 userprog/debugger_command_manager.hh \
 							 userprog/executable.hh               \
 							 userprog/transfer.hh                 \
+							 userprog/coremap.hh                  \
 							 filesys/file_system.hh               \
 							 userprog/synchconsole.hh             \
 							 filesys/open_file.hh                 \
@@ -118,6 +119,7 @@ USERPROG_SRC = userprog/address_space.cc            \
 							 userprog/synchconsole.cc             \
 							 userprog/prog_test.cc                \
 							 userprog/transfer.cc                 \
+							 userprog/coremap.cc                  \
 							 lib/bitmap.cc                        \
 							 machine/console.cc                   \
 							 machine/encoding.cc                  \

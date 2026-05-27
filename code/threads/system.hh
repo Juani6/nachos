@@ -36,7 +36,12 @@ extern Timer *timer;                 ///< The hardware alarm clock.
 
 #ifdef USER_PROGRAM
 #include "lib/bitmap.hh"
+#ifdef SWAP
+#include "coremap.hh"
+extern CoreMap * coreMap;
+#else
 extern Bitmap* memoryMap; // Reemplazo del (1:1) entre paginas
+#endif
 extern Lock* mMapLock; 
 #include "machine/machine.hh"
 extern Machine *machine;  // User program memory and registers.

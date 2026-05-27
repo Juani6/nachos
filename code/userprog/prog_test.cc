@@ -34,8 +34,6 @@ StartProcess(const char *filename)
     AddressSpace *space = new AddressSpace(executable);
     currentThread->space = space;
 
-    // delete executable;
-
     space->InitRegisters();  // Set the initial register values.
     space->RestoreState();   // Load page table register.
 

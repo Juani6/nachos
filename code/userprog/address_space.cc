@@ -32,7 +32,9 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     size = numPages * PAGE_SIZE;
     
     // How big is address space?
+    #ifndef SWAP
     ASSERT(numPages <= memoryMap->CountClear());
+    #endif
     // Check we are not trying to run anything too big -- at least until we
     // have virtual memory.
 
@@ -45,12 +47,19 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
         // For now, virtual page number = physical page number.
-        
-        mMapLock->Acquire();
+            mMapLock->Acquire();
+#ifndef SWAP
         phisPage = memoryMap->Find();
         ASSERT(phisPage != -1);
         pageTable[i].physicalPage = (unsigned) phisPage;
-        mMapLock->Release();
+#else
+        phisPage = coreMap->FindPage(currentThread,i);
+        DEBUG('a', "Physical page number: %d\n", phisPage);
+        ASSERT(phisPage != -1);
+        pageTable[i].physicalPage = (unsigned) phisPage;
+#endif
+    mMapLock->Release();
+
         
         pageTable[i].valid        = true;
         pageTable[i].use          = false;
@@ -109,12 +118,20 @@ AddressSpace::LoadPage(unsigned vpn) {
     DEBUG('a', ">>> ENTRANDO A LOADPAGE CON VPN: %u <<<\n", vpn);
     uint32_t codeSize = exe->GetCodeSize();
     uint32_t dataSize = exe->GetInitDataSize();
-    
+
     mMapLock->Acquire();
+#ifndef SWAP
     int phisPage = memoryMap->Find();
     ASSERT(phisPage != -1);
     pageTable[vpn].physicalPage = (unsigned) phisPage;
+#else
+    int phisPage = coreMap->FindPage(currentThread,vpn);
+    DEBUG('a', "Physical page number: %d\n", phisPage);
+    ASSERT(phisPage != -1);
+    pageTable[vpn].physicalPage = (unsigned) phisPage;
+#endif
     mMapLock->Release();
+
     unsigned segOffset = vpn * PAGE_SIZE;
     uint32_t tamBinario = codeSize + dataSize;
     if (segOffset >= tamBinario) { // (vpn * PAGE_SIZE > codeSize + dataSize) 
@@ -219,7 +236,11 @@ AddressSpace::~AddressSpace()
 {   
     for (unsigned i = 0; i < numPages; i++) {
         if (pageTable[i].physicalPage != (unsigned)-1) {
+            #ifndef SWAP
             memoryMap->Clear(pageTable[i].physicalPage);
+            #else
+            coreMap->FreePage((uint32_t)pageTable[i].physicalPage);
+            #endif
         }
     }
     delete [] pageTable;

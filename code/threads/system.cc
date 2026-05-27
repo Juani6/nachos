@@ -38,7 +38,11 @@ SynchDisk *synchDisk;
 #endif
 
 #ifdef USER_PROGRAM  // Requires either *FILESYS* or *FILESYS_STUB*.
+#ifdef SWAP
+CoreMap* coreMap;
+#else
 Bitmap* memoryMap;
+#endif
 Machine *machine;  ///< User program memory and registers.
 SynchConsole *synchConsole;
 Table<Thread*> *processTable;
@@ -202,7 +206,11 @@ Initialize(int argc, char **argv)
     processTable = new Table<Thread*>;
     processTable->Add(currentThread);
 
+    #ifndef SWAP
     memoryMap = new Bitmap(numPhysicalPages);
+    #else
+    coreMap = new CoreMap(numPhysicalPages);
+    #endif
     mMapLock = new Lock("Lock for the memory map");
     SetExceptionHandlers();
 
@@ -257,7 +265,12 @@ Cleanup()
             }
         }
     }
-    delete memoryMap; 
+    
+    #ifndef SWAP
+    delete memoryMap;
+    #else
+    delete coreMap;
+    #endif 
     delete mMapLock;
     
     delete machine;
