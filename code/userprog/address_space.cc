@@ -49,8 +49,8 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     #endif
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
-        // For now, virtual page number = physical page number.
-            mMapLock->Acquire();
+
+        mMapLock->Acquire();
 #ifndef SWAP
         phisPage = memoryMap->Find();
         ASSERT(phisPage != -1);

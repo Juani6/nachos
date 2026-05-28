@@ -72,3 +72,9 @@ CoreMap::PickVictim(){
 	return rand() % size;
 	//to do
 }
+
+CoreMapEntry*
+CoreMap::GetPage(unsigned idx) {
+	ASSERT(idx < size);
+	return arr +idx;
+}

@@ -47,6 +47,7 @@ public:
 	uint32_t PhysAdrrToIdx(uint32_t physAddr);
 	uint32_t IdxToPhysAddr(uint32_t idx);
 
+	CoreMapEntry* GetPage(unsigned idx);
 private:
 	unsigned size;
 	CoreMapEntry *arr;
