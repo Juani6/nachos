@@ -192,6 +192,11 @@ Initialize(int argc, char **argv)
     // But if it ever tries to give up the CPU, we better have a `Thread`
     // object to save its state.
     #ifdef USER_PROGRAM
+    /* 
+        Esto es necesario hacerlo si esta definido USER_PROG debido a 
+        que en el CleaunUp se eliminan los nombres de los threads con espacio de usuario.
+        Y al ejecutar un programa con -x el espacio de usuario se crea para el hilo main
+    */
     char staticnNameMain[] = "main";
     char *nameMain = strdup(staticnNameMain);
     currentThread = new Thread(nameMain,0);
