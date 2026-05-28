@@ -64,6 +64,9 @@ public:
 
     /// Print collected statistics.
     void Print();
+
+    // Imprime las estadisticas en un momento del sistema.
+    void Debug();
 };
 
 /// Constants used to reflect the relative time an operation would take in a

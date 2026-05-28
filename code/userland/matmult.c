@@ -8,7 +8,6 @@
 
 #include "syscall.h"
 
-
 /// Sum total of the arrays does not fit in physical memory.
 #define DIM  20
 

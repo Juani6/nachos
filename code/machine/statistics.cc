@@ -12,7 +12,7 @@
 #include "lib/utility.hh"
 
 #include <stdio.h>
-
+#include "lib/debug.hh"
 
 /// Initialize performance metrics to zero, at system startup.
 Statistics::Statistics()
@@ -47,4 +47,24 @@ Statistics::Print()
     // Numero de hits menos los repetidos
     unsigned long trueHits = numTLBHits - numPageFaults; 
     printf("Hit Ratio : %.4f%%\n", (double) trueHits / (trueHits + numTLBMisses) * 100.0);
+}
+
+void
+Statistics::Debug()
+{
+#ifdef DFS_TICKS_FIX
+    if (tickResets != 0) {
+        printf("WARNING: the tick counter was reset %lu times; the following"
+               " statistics may be invalid.\n\n", tickResets);
+    }
+#endif
+    DEBUG('p',"Ticks: total %lu, idle %lu, system %lu, user %lu\n",
+           totalTicks, idleTicks, systemTicks, userTicks);
+    DEBUG('p',"Disk I/O: reads %lu, writes %lu\n", numDiskReads, numDiskWrites);
+    DEBUG('p',"Console I/O: reads %lu, writes %lu\n",
+           numConsoleCharsRead, numConsoleCharsWritten);
+    DEBUG('p',"Paging: faults %lu\n", numPageFaults);
+    // Numero de hits menos los repetidos
+    unsigned long trueHits = numTLBHits - numPageFaults; 
+    DEBUG('p',"Hit Ratio : %.4f%%\n", (double) trueHits / (trueHits + numTLBMisses) * 100.0);
 }

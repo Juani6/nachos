@@ -291,13 +291,13 @@ SyscallHandler(ExceptionType _et)
                 }
             }
             pTLock->Release();
-            
+            stats->Debug();
             if (alive > 1) {
                 currentThread->Finish();
             }
             // Si no hay procesos activos terminamos
             else { 
-
+                DEBUG('e', "No more processes in the scheduler. Halting.\n");
                 interrupt->Halt();
             }
             break;
