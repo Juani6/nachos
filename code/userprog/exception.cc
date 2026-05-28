@@ -336,6 +336,7 @@ SyscallHandler(ExceptionType _et)
 
             pTLock->Acquire();
             SpaceId pid = processTable->Add(newThread);
+            newThread->SetPid(pid);
             pTLock->Release();
             machine->WriteRegister(2,pid);
            
@@ -395,18 +396,37 @@ PageFaultHandler(ExceptionType _et) {
     unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
     unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
 
+    static unsigned tlb_index = 0;
     stats->numPageFaults++;
     DEBUG('a', "valid state: %d",currentThread->space->GetPageTable()[vpn].valid);
     if (currentThread->space->GetPageTable()[vpn].physicalPage == -1) {
-        currentThread->space->LoadPage(vpn);
-    }
+        #ifdef SWAP
+        if(currentThread->space->shadowTable[vpn].isInSwap){
+            int pid = currentThread->GetPid();
+            char _pid[3];
+            sprintf(_pid, "%d",pid);
+            char swapName [10] = "SWAP.";
+            strcat(swapName,_pid); 
+            
+            OpenFile* fd = fileSystem->Open(swapName);
+            //Esta condicion no tiene sentido pero bue 
+            if(!fd){
+                fd = fileSystem->Create(swapName,PAGE_SIZE); //Puse cualquiera en tamaño
+            }
+            fd->Seek(PAGE_SIZE*vpn);
+            char* buff [PAGE_SIZE];
+            fd->Read(buff,PAGE_SIZE); // Aca tambien xd
 
-    static unsigned tlb_index = 0;
-    
-    machine->GetMMU()->tlb[tlb_index] = currentThread->space->GetPageTable()[vpn];
+            machine->GetMMU()->tlb[tlb_index] = buff; // ESTO NO SE SI ES ASI AYUDA 
+        }
+        else{
+            currentThread->space->LoadPage(vpn);
+            machine->GetMMU()->tlb[tlb_index] = currentThread->space->GetPageTable()[vpn];
+        }
+        
+    }
     tlb_index = (tlb_index + 1) % TLB_SIZE;
 }
-/// currentThread->space->lastTLBEntry++ % TLB_SIZE
 
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.

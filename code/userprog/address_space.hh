@@ -20,6 +20,10 @@
 
 const unsigned USER_STACK_SIZE = 1024;  ///< Increase this as necessary!
 
+typedef struct _shadowTable {
+    bool isInSwap;
+    unsigned vpn;
+}ShadowTable;
 
 class AddressSpace {
 public:
@@ -52,12 +56,13 @@ public:
     void LoadPage(unsigned vpn);
     Executable* exe;
     OpenFile* _executable_file;
+    #ifdef SWAP
+    ShadowTable* shadowTable;
+    #endif
 private:
 
     /// Assume linear page table translation for now!
     TranslationEntry *pageTable;
-    
-
     /// Number of pages in the virtual address space.
     unsigned numPages;
 

@@ -215,7 +215,7 @@ Initialize(int argc, char **argv)
 
     pTLock = new Lock("Process table lock");
     processTable = new Table<Thread*>;
-    processTable->Add(currentThread);
+    currentThread->SetPid((processTable->Add(currentThread)));
 
     #ifndef SWAP
     memoryMap = new Bitmap(numPhysicalPages);

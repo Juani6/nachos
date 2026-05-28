@@ -180,6 +180,8 @@ private:
     int userRegisters[NUM_TOTAL_REGS];
     // Plancha 3 
     int exitStatus;
+
+    int pid;
 public:
     int GetExitStatus();
     void SetExitStatus(int s);
@@ -194,6 +196,9 @@ public:
 
     // User code this thread is running.
     AddressSpace *space;
+
+    int GetPid();
+    void SetPid(int _pid);
 #endif
 };
 

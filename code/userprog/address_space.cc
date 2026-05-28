@@ -44,6 +44,9 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     // First, set up the translation.
     int phisPage;
     pageTable = new TranslationEntry[numPages];
+    #ifdef SWAP
+    shadowTable = new ShadowTable[numPages];
+    #endif
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
         // For now, virtual page number = physical page number.
@@ -57,10 +60,11 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
         DEBUG('a', "Physical page number: %d\n", phisPage);
         ASSERT(phisPage != -1);
         pageTable[i].physicalPage = (unsigned) phisPage;
+        shadowTable[i].isInSwap = false;
+        shadowTable[i].vpn = i;
 #endif
     mMapLock->Release();
 
-        
         pageTable[i].valid        = true;
         pageTable[i].use          = false;
         pageTable[i].dirty        = false;
