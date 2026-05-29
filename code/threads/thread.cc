@@ -425,14 +425,6 @@ void
 Thread::SetExitStatus(int s) {
     exitStatus = s;
 }
-int
-Thread::GetPid(){
-    return pid;
-}
-void
-Thread::SetPid(int _pid){
-    pid=_pid;
-}
 #endif
 
 

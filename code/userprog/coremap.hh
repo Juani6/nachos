@@ -10,7 +10,7 @@ typedef struct _coreMapEntry {
 	
 	struct Thread* owner;
 	
-	uint32_t vaddrs = -1;
+	uint32_t vpn = -1;
 	
 	// Indica si la pagina esta libre
 	bool isFree     = 1;
@@ -29,7 +29,7 @@ public:
 	// Ocupa un frame libre
 	// Si no existe deberia swapear
 	// Devuelve su indice en la tabla
-	unsigned FindPage(Thread* owner, uint32_t vAddrs);
+	unsigned FindPage(Thread* owner, uint32_t vpn);
 
 	// Devuelve un numero de marco
 	int PickVictim();
@@ -42,12 +42,15 @@ public:
 	// Al area de swap mientras accede a memoria
 	void PinPage(uint32_t physAddrs);
 	void UnPinPage(uint32_t physAddrs);
+ 
+// Funciones para simplificar calculos
 
-	// Funciones para simplificar calculos
 	uint32_t PhysAdrrToIdx(uint32_t physAddr);
 	uint32_t IdxToPhysAddr(uint32_t idx);
-
 	CoreMapEntry* GetPage(unsigned idx);
+	void SendToSwap(unsigned pfn);
+	void UpdateCoreMap(uint32_t vpn,unsigned idx);
+
 private:
 	unsigned size;
 	CoreMapEntry *arr;

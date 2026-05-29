@@ -31,7 +31,12 @@ StartProcess(const char *filename)
         return;
     }
 
-    AddressSpace *space = new AddressSpace(executable);
+    pTLock->Acquire();
+    int pid = processTable->Add(currentThread);
+    pTLock->Release();
+
+
+    AddressSpace *space = new AddressSpace(executable,pid);
     currentThread->space = space;
 
     space->InitRegisters();  // Set the initial register values.

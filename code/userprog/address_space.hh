@@ -38,7 +38,7 @@ public:
     /// Parameters:
     /// * `executable_file` is the open file that corresponds to the
     ///   program; it contains the object code to load into memory.
-    AddressSpace(OpenFile *executable_file);
+    AddressSpace(OpenFile *executable_file, unsigned _pid);
 
     /// De-allocate an address space.
     ~AddressSpace();
@@ -56,10 +56,13 @@ public:
     void LoadPage(unsigned vpn);
     Executable* exe;
     OpenFile* _executable_file;
-    #ifdef SWAP
+    char* CreateSwapName();
+    OpenFile* GetSwapFile();
+    
     ShadowTable* shadowTable;
-    #endif
+    int pid;
 private:
+    OpenFile* swapFile;
 
     /// Assume linear page table translation for now!
     TranslationEntry *pageTable;

@@ -11,59 +11,80 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 enum exeRead {DATA, CODE};
 static void ExeRead(uint32_t virtualAddr,unsigned segOffset, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data);
 /// First, set up the translation from program memory to physical memory.
 /// For now, this is really simple (1:1), since we are only uniprogramming,
 /// and we have a single unsegmented page table.
-AddressSpace::AddressSpace(OpenFile *executable_file)
+AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid)
 {
+    pid = _pid;
     _executable_file = executable_file;
     ASSERT(executable_file != nullptr);
     
     exe = new Executable(executable_file);
     ASSERT(exe->CheckMagic());
     
-    
     unsigned size = exe->GetSize() + USER_STACK_SIZE;
       // We need to increase the size to leave room for the stack.
     numPages = DivRoundUp(size, PAGE_SIZE);
     size = numPages * PAGE_SIZE;
-    
-    // How big is address space?
-    #ifndef SWAP
-    ASSERT(numPages <= memoryMap->CountClear());
-    #endif
-    // Check we are not trying to run anything too big -- at least until we
-    // have virtual memory.
-
+    pageTable = new TranslationEntry[numPages];
     DEBUG('a', "Initializing address space, num pages %u, size %u\n",numPages, size);
     
-    #ifndef DEMAND_LOADING
-    // First, set up the translation.
-    int phisPage;
-    pageTable = new TranslationEntry[numPages];
-    #ifdef SWAP
+#ifdef SWAP
     shadowTable = new ShadowTable[numPages];
-    #endif
+    
+    char *swapName = CreateSwapName();
+    ASSERT(fileSystem->Create(swapName, numPages * PAGE_SIZE));
+    swapFile = fileSystem->Open(swapName);
+    free(swapName);
+#else
+    ASSERT(numPages <= memoryMap->CountClear());    
+#endif
+
+#ifdef DEMAND_LOADING // ifdef DEMANG LOADING 
+
+    for (unsigned i = 0; i < numPages; i++) {
+        pageTable[i].virtualPage  = i;
+       
+        pageTable[i].physicalPage  = -1;
+        pageTable[i].valid        = false;
+        pageTable[i].use          = false;
+        pageTable[i].dirty        = false;
+        pageTable[i].readOnly     = false;
+#ifdef SWAP
+        shadowTable[i].isInSwap = false;
+        shadowTable[i].vpn = i;
+#endif
+    }
+    
+#endif
+    
+
+#ifndef DEMAND_LOADING
+    // First, set up the translation.
+    int physPage;
+    
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
 
         mMapLock->Acquire();
-#ifndef SWAP
-        phisPage = memoryMap->Find();
-        ASSERT(phisPage != -1);
-        pageTable[i].physicalPage = (unsigned) phisPage;
-#else
-        phisPage = coreMap->FindPage(currentThread,i);
-        DEBUG('a', "Physical page number: %d\n", phisPage);
-        ASSERT(phisPage != -1);
-        pageTable[i].physicalPage = (unsigned) phisPage;
+#ifdef SWAP
+        fpn = coreMap->FindPage(currentThread,i);
+        DEBUG('a', "Physical page number: %d\n", fpn);
+        ASSERT(fpn != -1);
+        pageTable[i].physicalPage = (unsigned) fpn;
         shadowTable[i].isInSwap = false;
-        shadowTable[i].vpn = i;
+        shadowTable[i].vpn = i;    
+#else
+        physPage = memoryMap->Find();
+        ASSERT(physPage != -1);
+        pageTable[i].physicalPage = (unsigned) physPage;
 #endif
-    mMapLock->Release();
+        mMapLock->Release();
 
         pageTable[i].valid        = true;
         pageTable[i].use          = false;
@@ -88,31 +109,18 @@ AddressSpace::AddressSpace(OpenFile *executable_file)
     
     if (codeSize > 0) {
         uint32_t virtualAddr = exe->GetCodeAddr();
-        DEBUG('a', "Initializing code segment, at 0x%X, size %u\n",
-            virtualAddr, codeSize);
-            ExeRead(virtualAddr,0,codeSize,pageTable,exe,CODE);
-        }
-        if (initDataSize > 0) {
-            uint32_t virtualAddr = exe->GetInitDataAddr();
-            DEBUG('a', "Initializing data segment, at 0x%X, size %u\n",
-                virtualAddr, initDataSize);
-                ExeRead(virtualAddr,0,initDataSize,pageTable,exe,DATA);
-                
-            }
-    #else
-
-    pageTable = new TranslationEntry[numPages];
-    for (unsigned i = 0; i < numPages; i++) {
-        pageTable[i].virtualPage  = i;
-       
-       pageTable[i].physicalPage  = -1;
-        pageTable[i].valid        = false;
-        pageTable[i].use          = false;
-        pageTable[i].dirty        = false;
-        pageTable[i].readOnly     = false;
+        DEBUG('a', "Initializing code segment, at 0x%X, size %u\n", virtualAddr, codeSize);
+        ExeRead(virtualAddr,0,codeSize,pageTable,exe,CODE);
     }
-    
-    #endif
+    if (initDataSize > 0) {
+        uint32_t virtualAddr = exe->GetInitDataAddr();
+        DEBUG('a', "Initializing data segment, at 0x%X, size %u\n",virtualAddr, initDataSize);
+        ExeRead(virtualAddr,0,initDataSize,pageTable,exe,DATA);
+                
+    }
+
+#endif
+
     DEBUG('a', "Constructor end: _exe=%p codeSize=%u\n", exe, exe->GetCodeSize());
 }
 
@@ -124,15 +132,16 @@ AddressSpace::LoadPage(unsigned vpn) {
     uint32_t dataSize = exe->GetInitDataSize();
 
     mMapLock->Acquire();
-#ifndef SWAP
-    int phisPage = memoryMap->Find();
-    ASSERT(phisPage != -1);
-    pageTable[vpn].physicalPage = (unsigned) phisPage;
+#ifdef SWAP
+    int fpn = coreMap->FindPage(currentThread,vpn);
+    coreMap->PinPage(fpn);
+    DEBUG('a', "Physical page number: %d\n", fpn);
+    ASSERT(fpn != -1);
+    pageTable[vpn].physicalPage = (unsigned) fpn;
 #else
-    int phisPage = coreMap->FindPage(currentThread,vpn);
-    DEBUG('a', "Physical page number: %d\n", phisPage);
-    ASSERT(phisPage != -1);
-    pageTable[vpn].physicalPage = (unsigned) phisPage;
+    int fpn = memoryMap->Find();
+    ASSERT(fpn != -1);
+    pageTable[vpn].physicalPage = (unsigned) fpn;
 #endif
     mMapLock->Release();
 
@@ -191,7 +200,119 @@ AddressSpace::LoadPage(unsigned vpn) {
     }
     
     pageTable[vpn].valid = true;
+    #ifdef SWAP
+    coreMap->UnPinPage(fpn);
+    #endif
 }
+
+/// Deallocate an address space.
+///
+/// Nothing for now!
+AddressSpace::~AddressSpace()
+{   
+    for (unsigned i = 0; i < numPages; i++) {
+        if (pageTable[i].physicalPage != (unsigned)-1) {
+            #ifndef SWAP
+            memoryMap->Clear(pageTable[i].physicalPage);
+            #else
+            coreMap->FreePage((uint32_t)pageTable[i].physicalPage);
+            #endif
+        }
+    }
+    char * swapName = CreateSwapName();
+    delete swapFile;
+    fileSystem->Remove(swapName);
+    free(swapName);
+    
+    delete [] pageTable;
+    delete exe;
+    delete _executable_file;
+}
+
+/// Set the initial values for the user-level register set.
+///
+/// We write these directly into the “machine” registers, so that we can
+/// immediately jump to user code.  Note that these will be saved/restored
+/// into the `currentThread->userRegisters` when this thread is context
+/// switched out.
+void
+AddressSpace::InitRegisters()
+{
+    for (unsigned i = 0; i < NUM_TOTAL_REGS; i++) {
+        machine->WriteRegister(i, 0);
+    }
+
+    // Initial program counter -- must be location of `Start`.
+    machine->WriteRegister(PC_REG, 0);
+
+    // Need to also tell MIPS where next instruction is, because of branch
+    // delay possibility.
+    machine->WriteRegister(NEXT_PC_REG, 4);
+
+    // Set the stack register to the end of the address space, where we
+    // allocated the stack; but subtract off a bit, to make sure we do not
+    // accidentally reference off the end!
+    machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
+    DEBUG('a', "Initializing stack register to %u\n",
+          numPages * PAGE_SIZE - 16);
+}
+
+/// On a context switch, save any machine state, specific to this address
+/// space, that needs saving.
+///
+/// For now, nothing!
+void
+AddressSpace::SaveState()
+{
+    #ifdef USE_TLB
+    uint32_t vpn;
+    for (unsigned i = 0; i < TLB_SIZE; i++) {
+        if (machine->GetMMU()->tlb[i].valid) {
+            vpn = machine->GetMMU()->tlb[i].virtualPage;
+            pageTable[vpn].dirty = machine->GetMMU()->tlb[i].dirty;
+            pageTable[vpn].use = machine->GetMMU()->tlb[i].use;
+        }
+    }
+    #endif
+}
+
+/// On a context switch, restore the machine state so that this address space
+/// can run.
+///
+/// For now, tell the machine where to find the page table.
+void
+AddressSpace::RestoreState()
+{
+    #ifndef USE_TLB
+    machine->GetMMU()->pageTable     = pageTable;
+    machine->GetMMU()->pageTableSize = numPages;
+    #else
+    for (unsigned i = 0; i < TLB_SIZE; i++) {
+        machine->GetMMU()->tlb[i].valid = false;
+    }
+    #endif
+}
+
+TranslationEntry*
+AddressSpace::GetPageTable() {
+    return pageTable;
+}
+
+char*
+AddressSpace::CreateSwapName() {
+    char _swapName [32];
+    snprintf(_swapName, sizeof(_swapName),"SWAP.%d", pid);
+    char *swapName = strdup(_swapName);
+
+    return swapName;
+}
+
+OpenFile*
+AddressSpace::GetSwapFile() {
+    return swapFile;
+}
+
+
 
 //Setea los bloques de Data o Code previo a ejecutar un proceso
 static void ExeRead(uint32_t virtualAddr,unsigned segOffset, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data) {
@@ -232,80 +353,3 @@ static void ExeRead(uint32_t virtualAddr,unsigned segOffset, uint32_t size,Trans
         }
 }
 
-
-/// Deallocate an address space.
-///
-/// Nothing for now!
-AddressSpace::~AddressSpace()
-{   
-    for (unsigned i = 0; i < numPages; i++) {
-        if (pageTable[i].physicalPage != (unsigned)-1) {
-            #ifndef SWAP
-            memoryMap->Clear(pageTable[i].physicalPage);
-            #else
-            coreMap->FreePage((uint32_t)pageTable[i].physicalPage);
-            #endif
-        }
-    }
-    delete [] pageTable;
-    delete exe;
-    delete _executable_file;
-}
-
-/// Set the initial values for the user-level register set.
-///
-/// We write these directly into the “machine” registers, so that we can
-/// immediately jump to user code.  Note that these will be saved/restored
-/// into the `currentThread->userRegisters` when this thread is context
-/// switched out.
-void
-AddressSpace::InitRegisters()
-{
-    for (unsigned i = 0; i < NUM_TOTAL_REGS; i++) {
-        machine->WriteRegister(i, 0);
-    }
-
-    // Initial program counter -- must be location of `Start`.
-    machine->WriteRegister(PC_REG, 0);
-
-    // Need to also tell MIPS where next instruction is, because of branch
-    // delay possibility.
-    machine->WriteRegister(NEXT_PC_REG, 4);
-
-    // Set the stack register to the end of the address space, where we
-    // allocated the stack; but subtract off a bit, to make sure we do not
-    // accidentally reference off the end!
-    machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
-    DEBUG('a', "Initializing stack register to %u\n",
-          numPages * PAGE_SIZE - 16);
-}
-
-/// On a context switch, save any machine state, specific to this address
-/// space, that needs saving.
-///
-/// For now, nothing!
-void
-AddressSpace::SaveState()
-{}
-
-/// On a context switch, restore the machine state so that this address space
-/// can run.
-///
-/// For now, tell the machine where to find the page table.
-void
-AddressSpace::RestoreState()
-{
-    #ifndef USE_TLB
-    machine->GetMMU()->pageTable     = pageTable;
-    machine->GetMMU()->pageTableSize = numPages;
-    #else
-    for (unsigned i = 0; i < TLB_SIZE; i++) {
-        machine->GetMMU()->tlb[i].valid = false;
-    }
-    #endif
-}
-
-TranslationEntry*
-AddressSpace::GetPageTable() {
-    return pageTable;
-}

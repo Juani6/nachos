@@ -285,8 +285,8 @@ SyscallHandler(ExceptionType _et)
             
             pTLock->Acquire();
             int alive = 0;
-            for (int i = 0; i < Table<Thread*>::SIZE; i++) {
-                if (processTable->Get(i) != nullptr) {
+            for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
+                if (processTable->Get((unsigned)i) != nullptr) {
                     alive++;
                 }
             }
@@ -328,16 +328,17 @@ SyscallHandler(ExceptionType _et)
                 break;
             }
 
-            AddressSpace *space = new AddressSpace(executable);
             filename[FILE_NAME_MAX_LEN] = '\0';
             char* name = strdup(filename);
             Thread* newThread = new Thread(name,true);
-            newThread->space = space;
-
+            
             pTLock->Acquire();
             SpaceId pid = processTable->Add(newThread);
-            newThread->SetPid(pid);
             pTLock->Release();
+
+
+            AddressSpace *space = new AddressSpace(executable,pid);
+            newThread->space = space;
             machine->WriteRegister(2,pid);
            
             newThread->Fork(ExecProcess,(void*)argv);
@@ -391,78 +392,32 @@ SyscallHandler(ExceptionType _et)
     IncrementPC();
 }
 
-char* GetSwapName(int pid) {
-    char _pid[3];
-    sprintf(_pid, "%d", pid);
-    char _swapName [10] = "SWAP.";
-    strcat(_swapName,_pid);
-    char *swapName = strdup(_swapName);
-    return swapName;
-}
-
-
-#ifdef SWAP
-// Retorna el indice del coremap que se libero
-static
-unsigned SendToSwap(TranslationEntry table) {
-    // accedemos a la vpn
-    // con el coremap accedemos al dueño
-    // en el dueño actualizamos los dirty y use
-    // escribimos el dato en swap
-    
-    // Copiamos los datos y accedemos a la memoria fisica y al owner
-    uint32_t vpn = table.virtualPage;
-    uint32_t physAddr = table.physicalPage;
-    unsigned idx = coreMap->PhysAdrrToIdx(physAddr); 
-    Thread* owner = coreMap->GetPage(idx)->owner;
-    
-    owner->space->GetPageTable()[vpn].dirty = table.dirty;
-    owner->space->GetPageTable()[vpn].use = table.use; 
-    owner->space->shadowTable[vpn].isInSwap = true;
-    
-    // Obtenemos el nombre del swap
-    char* name = GetSwapName(owner->GetPid());
-    OpenFile* swapFile = fileSystem->Open(name);
-    free(name);
-    char buff[PAGE_SIZE];
-    // Copiamos los datos de memoria principal a un buffer y escribimos eso en el
-    // sector correspondiente del archivo
-    memcpy(buff,&machine->mainMemory[physAddr * PAGE_SIZE],PAGE_SIZE);
-    swapFile->WriteAt(buff,PAGE_SIZE,PAGE_SIZE*vpn);
-    return idx;
-}
-#endif
-
-
-
 static void
 PageFaultHandler(ExceptionType _et) {
     unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
+    DEBUG('a', "badaddrs %u\n", badAddrs);
     unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
 
     static unsigned tlb_index = 0;
     stats->numPageFaults++;
-    DEBUG('a', "valid state: %d",currentThread->space->GetPageTable()[vpn].valid);
-    if (currentThread->space->GetPageTable()[vpn].physicalPage == -1) {
-        TranslationEntry page;
+    DEBUG('a', "[VPN]: %d\n",vpn);
+    
+    if (!currentThread->space->GetPageTable()[vpn].valid) {
         #ifdef SWAP
         if(currentThread->space->shadowTable[vpn].isInSwap) {
             
-            char *swapName = GetSwapName(currentThread->GetPid());
-            DEBUG('e', "SWAPNAME : %s\n", swapName);
-            OpenFile* fd = fileSystem->Open(swapName);
-            free(swapName);
-            
-
+            OpenFile* fd = currentThread->space->GetSwapFile();
             char buff [PAGE_SIZE];
             fd->ReadAt(buff,PAGE_SIZE,PAGE_SIZE*vpn);
-            // Mandamos la pagina en el indice correspondiente a su swap
-            // Actualiza tabla de procesos del hilo dueño
-            unsigned idx = SendToSwap(machine->GetMMU()->tlb[tlb_index]); 
-            // Actualizamos el coreMap 
-            coreMap->GetPage(idx)->owner = currentThread;
-            coreMap->GetPage(idx)->vaddrs = vpn;
-            memcpy(&machine->mainMemory[idx*PAGE_SIZE], buff, PAGE_SIZE);
+            
+            unsigned fpn = coreMap->FindPage(currentThread, vpn);
+            coreMap->PinPage(fpn);
+            memcpy(&machine->mainMemory[coreMap->IdxToPhysAddr(fpn)], buff, PAGE_SIZE);
+            currentThread->space->GetPageTable()[vpn].valid = true;
+            currentThread->space->GetPageTable()[vpn].physicalPage = fpn;
+            currentThread->space->GetPageTable()[vpn].dirty = true;
+            currentThread->space->GetPageTable()[vpn].use   = true;
+            coreMap->UnPinPage(fpn);
         }
         else{
             currentThread->space->LoadPage(vpn);
@@ -470,14 +425,19 @@ PageFaultHandler(ExceptionType _et) {
         #else
         currentThread->space->LoadPage(vpn);
         #endif
-        page = currentThread->space->GetPageTable()[vpn];
-        machine->GetMMU()->tlb[tlb_index] = page;
-        
     }
+    TranslationEntry page = currentThread->space->GetPageTable()[vpn];
+    
+    if (machine->GetMMU()->tlb[tlb_index].valid) {
+        unsigned tlbPage = machine->GetMMU()->tlb[tlb_index].virtualPage;
+        currentThread->space->GetPageTable()[tlbPage].dirty = machine->GetMMU()->tlb[tlb_index].dirty;
+        currentThread->space->GetPageTable()[tlbPage].use   = machine->GetMMU()->tlb[tlb_index].use;
+    }
+    
+    machine->GetMMU()->tlb[tlb_index] = page;
+    DEBUG('a', ">>>>>Page Fault Handler finalizado<<<<<\n");
     tlb_index = (tlb_index + 1) % TLB_SIZE;
 }
-
-
 
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.
