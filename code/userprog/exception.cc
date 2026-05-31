@@ -114,6 +114,8 @@ SyscallHandler(ExceptionType _et)
             int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null.\n");
+                machine->WriteRegister(2,SC_ERROR);
+                break;
             }
 
             char filename[FILE_NAME_MAX_LEN + 1];
@@ -121,13 +123,15 @@ SyscallHandler(ExceptionType _et)
                                     filename, sizeof filename)) {
                 DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                       FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2,SC_ERROR);
+            break;
             }
 
             DEBUG('e', "`Create` requested for file `%s`.\n", filename);
             if(fileSystem->Create(filename,1000)) 
                 machine->WriteRegister(2,0);
             else
-                machine->WriteRegister(2,-1);
+                machine->WriteRegister(2,SC_ERROR);
             break;
         }
         case SC_OPEN: {
@@ -141,6 +145,8 @@ SyscallHandler(ExceptionType _et)
             if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
                 DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                       FILE_NAME_MAX_LEN);
+                machine->WriteRegister(2,SC_ERROR);
+                break;
             }
             
             OpenFile *f = fileSystem->Open(filename);
@@ -152,6 +158,8 @@ SyscallHandler(ExceptionType _et)
             OpenFileId fd = currentThread->fdTable->Add(f);
             if (fd == -1){
                 DEBUG('e', "Error: fdTable full\n");
+                machine->WriteRegister(2,SC_ERROR);
+                break;
             }
 
             machine->WriteRegister(2,(int) fd);
@@ -176,12 +184,16 @@ SyscallHandler(ExceptionType _et)
             int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null");
+                machine->WriteRegister(2,SC_ERROR);
+                break;
             }
 
             char filename[FILE_NAME_MAX_LEN + 1];
             if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
                 DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                       FILE_NAME_MAX_LEN);
+                machine->WriteRegister(2,SC_ERROR);
+                break;
             }
 
             bool err = fileSystem->Remove(filename);
@@ -307,9 +319,13 @@ SyscallHandler(ExceptionType _et)
             int argAddr      = machine->ReadRegister(5);
             DEBUG('e',"argAddr:%d\n",argAddr);
             char** argv;
-            if(argAddr){
+            if (argAddr) {
                 argv = SaveArgs(argAddr);
-            }else {argv = nullptr;}
+            } 
+            else {
+                argv = nullptr;
+            }
+            
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null");
             }
@@ -337,8 +353,9 @@ SyscallHandler(ExceptionType _et)
             pTLock->Release();
 
 
-            AddressSpace *space = new AddressSpace(executable,pid);
+            AddressSpace *space = new AddressSpace(executable,pid, newThread);
             newThread->space = space;
+            
             machine->WriteRegister(2,pid);
            
             newThread->Fork(ExecProcess,(void*)argv);
@@ -354,12 +371,12 @@ SyscallHandler(ExceptionType _et)
             
             pTLock->Acquire();
             Thread* hijo = processTable->Get(pid);
-            const char* sonName = hijo->GetName();
             pTLock->Release();
             if(!hijo){
                 machine->WriteRegister(2,SC_ERROR);
                 break;
             }
+            const char* sonName = hijo->GetName();
             
             if(!hijo->IsJoinable()) {
                 fprintf(stderr, "Thread not joinable\n");
@@ -395,47 +412,61 @@ SyscallHandler(ExceptionType _et)
 static void
 PageFaultHandler(ExceptionType _et) {
     unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
-    DEBUG('a', "badaddrs %u\n", badAddrs);
-    unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
 
+    DEBUG('e', "Stack reg :%X\n", machine->ReadRegister(STACK_REG));
+    DEBUG('e', "badaddrs %X\n", badAddrs);
+    unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
+    Thread* owner = currentThread;
+    ASSERT(owner != nullptr);
+    ASSERT(owner->space != nullptr);  // si esto falla, el thread terminó
     static unsigned tlb_index = 0;
     stats->numPageFaults++;
-    DEBUG('a', "[VPN]: %d\n",vpn);
-    
-    if (!currentThread->space->GetPageTable()[vpn].valid) {
+
+    DEBUG('e', "[VPN]: %d\n",vpn);
+    DEBUG('e', "SwapIn: owner=%s vpn=%X\n",owner->GetName(), vpn);
+    if (!owner->space->GetPageTable()[vpn].valid) {
         #ifdef SWAP
-        if(currentThread->space->shadowTable[vpn].isInSwap) {
+        if(owner->space->shadowTable[vpn].isInSwap) {
+            stats->numSwapIn++;
+            mMapLock->Acquire();
+            unsigned fpn = coreMap->FindPage(owner, vpn);
+            mMapLock->Release();
+            owner->space->GetPageTable()[vpn].physicalPage = fpn;
             
-            OpenFile* fd = currentThread->space->GetSwapFile();
-            char buff [PAGE_SIZE];
-            fd->ReadAt(buff,PAGE_SIZE,PAGE_SIZE*vpn);
-            
-            unsigned fpn = coreMap->FindPage(currentThread, vpn);
-            coreMap->PinPage(fpn);
-            memcpy(&machine->mainMemory[coreMap->IdxToPhysAddr(fpn)], buff, PAGE_SIZE);
-            currentThread->space->GetPageTable()[vpn].valid = true;
-            currentThread->space->GetPageTable()[vpn].physicalPage = fpn;
-            currentThread->space->GetPageTable()[vpn].dirty = true;
-            currentThread->space->GetPageTable()[vpn].use   = true;
+            OpenFile* fd = owner->space->GetSwapFile();
+            fd->ReadAt(&machine->mainMemory[coreMap->IdxToPhysAddr(fpn)],PAGE_SIZE,PAGE_SIZE*vpn);
+            owner->space->GetPageTable()[vpn].valid = true;
+            owner->space->GetPageTable()[vpn].dirty = false;
+            owner->space->GetPageTable()[vpn].use   = true;
+            owner->space->shadowTable[vpn].isInSwap = false;
             coreMap->UnPinPage(fpn);
         }
+        #ifdef DEMAND_LOADING
         else{
-            currentThread->space->LoadPage(vpn);
-        }
-        #else
-        currentThread->space->LoadPage(vpn);
+            owner->space->LoadPage(vpn);
+        } 
+        #else 
         #endif
+        
+        #else
+        owner->space->LoadPage(vpn);
+        #endif
+        
     }
-    TranslationEntry page = currentThread->space->GetPageTable()[vpn];
+    TranslationEntry page = owner->space->GetPageTable()[vpn];
     
     if (machine->GetMMU()->tlb[tlb_index].valid) {
         unsigned tlbPage = machine->GetMMU()->tlb[tlb_index].virtualPage;
-        currentThread->space->GetPageTable()[tlbPage].dirty = machine->GetMMU()->tlb[tlb_index].dirty;
-        currentThread->space->GetPageTable()[tlbPage].use   = machine->GetMMU()->tlb[tlb_index].use;
+        
+        if (tlbPage < owner->space->GetNumberPages()) {
+            owner->space->GetPageTable()[tlbPage].dirty = machine->GetMMU()->tlb[tlb_index].dirty;
+            owner->space->GetPageTable()[tlbPage].use   = machine->GetMMU()->tlb[tlb_index].use;
+    }
+        machine->GetMMU()->tlb[tlb_index].valid = false;
     }
     
+    page.valid = true;
     machine->GetMMU()->tlb[tlb_index] = page;
-    DEBUG('a', ">>>>>Page Fault Handler finalizado<<<<<\n");
     tlb_index = (tlb_index + 1) % TLB_SIZE;
 }
 

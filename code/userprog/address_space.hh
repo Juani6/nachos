@@ -25,6 +25,8 @@ typedef struct _shadowTable {
     unsigned vpn;
 }ShadowTable;
 
+class Thread;
+
 class AddressSpace {
 public:
 
@@ -38,7 +40,7 @@ public:
     /// Parameters:
     /// * `executable_file` is the open file that corresponds to the
     ///   program; it contains the object code to load into memory.
-    AddressSpace(OpenFile *executable_file, unsigned _pid);
+    AddressSpace(OpenFile *executable_file, unsigned _pid, Thread* _owner = nullptr);
 
     /// De-allocate an address space.
     ~AddressSpace();
@@ -61,6 +63,7 @@ public:
     
     ShadowTable* shadowTable;
     int pid;
+    unsigned GetNumberPages();
 private:
     OpenFile* swapFile;
 
@@ -68,7 +71,7 @@ private:
     TranslationEntry *pageTable;
     /// Number of pages in the virtual address space.
     unsigned numPages;
-
+    Thread* owner;
 };
 
 

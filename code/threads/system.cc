@@ -254,9 +254,7 @@ Cleanup()
     delete interrupt;
 
     delete stats;
-    //The thread destructor checks that currentThread != this
     Thread *t = currentThread;
-    currentThread = NULL;
     
 #ifdef USER_PROGRAM
 
@@ -288,6 +286,9 @@ Cleanup()
     delete processTable;
     delete pTLock;
 #endif
+
+    //The thread destructor checks that currentThread != this
+    currentThread = NULL;
     delete t;
     
 

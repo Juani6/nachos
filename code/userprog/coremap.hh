@@ -51,6 +51,7 @@ public:
 	void SendToSwap(unsigned pfn);
 	void UpdateCoreMap(uint32_t vpn,unsigned idx);
 
+	unsigned GetFreePages();
 private:
 	unsigned size;
 	CoreMapEntry *arr;

@@ -47,11 +47,20 @@ public:
     /// Number of virtual memory page faults.
     unsigned long numPageFaults;
 
-    // Number of TLB hits
+    // Number of TLB hits.
     unsigned long numTLBHits;
 
-    // Number of TLB misses
+    // Number of TLB misses.
     unsigned long numTLBMisses;
+
+    // Number of SWAP out.
+    unsigned long numSwapOuts;
+
+    // Number of SWAP in.
+    unsigned long numSwapIn;
+
+    // Number of pages loaded by DEMAND
+    unsigned long numDemand;
 
 
 #ifdef DFS_TICKS_FIX

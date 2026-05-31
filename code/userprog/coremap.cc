@@ -35,30 +35,29 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 		i++;
 	}
 	unsigned idx = i;
-	DEBUG('a', "idx : %d\n",idx);
+	//DEBUG('a', "idx : %d\n",idx);
 	
-	PinPage(idx);
 	if (i == size) {
-		UnPinPage(idx);
 		do {
 			idx = PickVictim();
-			DEBUG('a', "Picking victim...\n");
-		} while (arr[idx].isPinned);
+		//DEBUG('a', "Picking victim...\n");
+		} while (arr[idx].isPinned || arr[idx].isFree || arr[idx].owner == nullptr);
 		PinPage(idx);
-		DEBUG('a',"Enviando la pagina %u a swap\n",idx);
+		 //DEBUG('a',"Enviando la pagina %u a swap\n",idx);
 		SendToSwap(idx);
 	} 
-	
+	else {
+		PinPage(idx);
+	}
 	arr[idx].isFree = 0;
-	arr[idx].isPinned = 0;
 	arr[idx].owner = owner;
 	arr[idx].vpn = _vpn;
-	UnPinPage(idx);
 	return idx;
 }
 
 void
 CoreMap::FreePage(uint32_t physAddrs) {
+	memset(&machine->mainMemory[physAddrs * PAGE_SIZE], 0, PAGE_SIZE);
 	arr[physAddrs].isFree = 1;
 	arr[physAddrs].owner = nullptr;
 	arr[physAddrs].vpn = -1;
@@ -87,6 +86,17 @@ CoreMap::GetPage(unsigned idx) {
 	return arr +idx;
 }
 
+unsigned
+CoreMap::GetFreePages() {
+	unsigned cantFree = 0;
+	for (unsigned i = 0 ; i < size; i++) {
+		if (arr[i].isFree) {
+			cantFree++;
+		}
+	}
+	return cantFree;	
+}
+
 /*
 
 La idea de esta funcion es chequear que en caso de que tengamos que mandar 
@@ -95,21 +105,19 @@ guarde el estado de la pagina y la invalide antes de swapearla
 
 */
 static
-void CheckTLB(unsigned pfn) {
+void CheckTLB(unsigned pfn, Thread* owner) {
 	TranslationEntry* tlb = machine->GetMMU()->tlb;
-	unsigned i = 0;
-	bool found = false;
-	while(!found && i < TLB_SIZE) {
+	for (unsigned i = 0 ; i < TLB_SIZE; i++) {
 
 		if(tlb[i].valid && tlb[i].physicalPage == pfn) {
 			uint32_t vpn = tlb[i].virtualPage;
-			currentThread->space->GetPageTable()[vpn].dirty = tlb[i].dirty;
-			currentThread->space->GetPageTable()[vpn].use   = tlb[i].use;
+			if (vpn < owner->space->GetNumberPages() ) {
+				owner->space->GetPageTable()[vpn].dirty = tlb[i].dirty;
+				owner->space->GetPageTable()[vpn].use   = tlb[i].use;
+			}
 		
 			tlb[i].valid = false;
-			found = true;
 		}
-		i++;
 	}
 }
 
@@ -118,16 +126,29 @@ void CheckTLB(unsigned pfn) {
 /* Enviar la pagina numero pfn a swap*/
 void
 CoreMap::SendToSwap(unsigned pfn) {
-    
+	
+    ASSERT(arr[pfn].owner != nullptr);
+		ASSERT(arr[pfn].vpn != (uint32_t)-1);
+		ASSERT(arr[pfn].vpn < arr[pfn].owner->space->GetNumberPages());
     // Copiamos los datos y accedemos a la memoria fisica y al owner
     Thread* owner = arr[pfn].owner;
 		TranslationEntry* pageTable = owner->space->GetPageTable();
 		uint32_t vpn = arr[pfn].vpn;
 		
-    CheckTLB(pfn);
 
+		if (owner == nullptr) return; // Esto no deberia pasar
+
+    if (vpn >= owner->space->GetNumberPages()) {
+        DEBUG('a', "ERROR: Intento de SwapOut de VPN inválida %u en marco %u\n", vpn, pfn);
+        arr[pfn].isFree = true; // Liberamos el marco corrupto
+        return;
+    }
+				
 		owner->space->shadowTable[vpn].isInSwap = true;
-    pageTable[vpn].valid = false;
+		pageTable[vpn].valid = false;
+		pageTable[vpn].physicalPage = (unsigned)-1;
+    CheckTLB(pfn,owner);
+
 
     // Obtenemos el archivo de swap
     OpenFile* swapFile = owner->space->GetSwapFile();
@@ -137,7 +158,10 @@ CoreMap::SendToSwap(unsigned pfn) {
     // Copiamos los datos de memoria principal a un buffer y escribimos eso en el
     // sector correspondiente del archivo
     memcpy(buff,&machine->mainMemory[physAddr],PAGE_SIZE);
-    swapFile->WriteAt(buff,PAGE_SIZE,PAGE_SIZE*vpn);
+		swapFile->WriteAt(buff, PAGE_SIZE, PAGE_SIZE * vpn);
+		owner->space->shadowTable[vpn].isInSwap = true;
+
+    stats->numSwapOuts++;
 }
 
 

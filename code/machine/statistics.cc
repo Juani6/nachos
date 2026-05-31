@@ -21,6 +21,9 @@ Statistics::Statistics()
     numDiskReads = numDiskWrites = 0;
     numConsoleCharsRead = numConsoleCharsWritten = 0;
     numPageFaults = numTLBHits = numTLBMisses = 0;
+    numSwapOuts = numSwapIn = 0;
+    numDemand = 0;
+
 #ifdef DFS_TICKS_FIX
     tickResets = 0;
 #endif
@@ -47,6 +50,9 @@ Statistics::Print()
     // Numero de hits menos los repetidos
     unsigned long trueHits = numTLBHits - numPageFaults; 
     printf("Hit Ratio : %.4f%%\n", (double) trueHits / (trueHits + numTLBMisses) * 100.0);
+    printf("Swap in: %lu\n", numSwapIn);
+    printf("Swap out: %lu\n", numSwapOuts);
+    printf("Demand : %lu\n", numDemand);
 }
 
 void
@@ -67,4 +73,7 @@ Statistics::Debug()
     // Numero de hits menos los repetidos
     unsigned long trueHits = numTLBHits - numPageFaults; 
     DEBUG('p',"Hit Ratio : %.4f%%\n", (double) trueHits / (trueHits + numTLBMisses) * 100.0);
+    DEBUG('p',"Swap in: %lu\n", numSwapIn);
+    DEBUG('p',"Swap out: %lu\n", numSwapOuts);
+    DEBUG('p',"Demand : %lu\n", numDemand);
 }
