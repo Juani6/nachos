@@ -247,6 +247,7 @@ MMU::Translate(unsigned virtAddr, unsigned *physAddr,
     // Calculate the virtual page number, and offset within the page,
     // from the virtual address.
     unsigned vpn    = (unsigned) virtAddr / PAGE_SIZE;
+    printf("TRACE_VPN: %d\n", vpn);
     unsigned offset = (unsigned) virtAddr % PAGE_SIZE;
 
     TranslationEntry *entry;

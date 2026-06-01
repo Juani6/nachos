@@ -9,6 +9,7 @@
 CoreMap::CoreMap(unsigned numPhysPages) {
 	arr = new CoreMapEntry[numPhysPages];
 	size = numPhysPages;
+	victimIdx = size-1;
 }
 
 CoreMap::~CoreMap() {
@@ -41,7 +42,7 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 		do {
 			idx = PickVictim();
 		//DEBUG('a', "Picking victim...\n");
-		} while (arr[idx].isPinned || arr[idx].isFree || arr[idx].owner == nullptr);
+		} while (arr[idx].isPinned);
 		PinPage(idx);
 		 //DEBUG('a',"Enviando la pagina %u a swap\n",idx);
 		SendToSwap(idx);
@@ -74,10 +75,79 @@ CoreMap::UnPinPage(uint32_t physAddrs) {
 	arr[physAddrs].isPinned = false;
 }
 
-int
+unsigned
 CoreMap::PickVictim(){
-	return rand() % size;
-	//to do
+#ifdef PRPOLICY_FIFO
+
+	victimIdx = (victimIdx+1) % size;
+	return victimIdx;
+
+#endif
+#ifdef PRPOLICY_CLOCK
+
+	unsigned ogIdx;
+	victimIdx = (victimIdx+1) % size;
+	if (victimIdx == 0){
+		ogIdx = size;
+	}
+	else{
+		ogIdx = victimIdx;
+	}
+	
+	//CASO (0,0)
+	
+	for(;(ogIdx-1) != victimIdx; victimIdx = (victimIdx+1) % size){
+		Thread* own = arr[victimIdx].owner;
+		unsigned idx = arr[victimIdx].vpn;
+		//NO SE QUE TAN BIEN ESTEN LOS INDICES DE ES -victimIdx en la Tabla del Thread-
+		if(!own->space->GetPageTable()[idx].use && !own->space->GetPageTable()[idx].dirty){
+			return victimIdx;
+		}
+	}
+
+	victimIdx = (victimIdx+1) % size;
+
+	// CASO (0,1) 
+	
+	for(;(ogIdx-1) != victimIdx ; victimIdx = (victimIdx+1) % size){
+		Thread* own = arr[victimIdx].owner;
+		unsigned idx = arr[victimIdx].vpn;
+		if (!own->space->GetPageTable()[idx].use && own->space->GetPageTable()[idx].dirty){
+			return victimIdx;
+		}
+		else {
+			own->space->GetPageTable()[idx].use = false;
+		}
+	}
+	
+	victimIdx = (victimIdx+1) % size;
+
+	//CASO (1,0)
+
+	for(;ogIdx-1 != victimIdx ; victimIdx = (victimIdx +1) % size){
+		Thread* own = arr[victimIdx].owner;
+		unsigned idx = arr[victimIdx].vpn;
+		if (!own->space->GetPageTable()[idx].dirty){
+			return victimIdx;
+		}
+	}
+
+	victimIdx = (victimIdx +1) % size;
+
+	// CASO (1,1)
+
+	for(;;victimIdx = (victimIdx +1) % size){
+		Thread* own = arr[victimIdx].owner;
+		unsigned idx = arr[victimIdx].vpn;
+		if(own->space->GetPageTable()[idx].dirty){
+			return victimIdx;
+		}
+	}
+	//Este caso NO DEBERIA PASAR : )
+	ASSERT(false);
+#else 
+return rand() % size;
+#endif
 }
 
 CoreMapEntry*

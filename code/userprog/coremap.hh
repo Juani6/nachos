@@ -32,7 +32,7 @@ public:
 	unsigned FindPage(Thread* owner, uint32_t vpn);
 
 	// Devuelve un numero de marco
-	int PickVictim();
+	unsigned PickVictim();
 
 	// Marca una pagina como libre
 	void FreePage(uint32_t physAddrs);
@@ -57,7 +57,7 @@ public:
 private:
 	unsigned size;
 	CoreMapEntry *arr;
-
+	unsigned victimIdx;
 };
 
 #endif
