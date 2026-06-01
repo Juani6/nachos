@@ -75,6 +75,13 @@ void itoa(int n, char* str) {
 
 }
 
+int atoi2(char *str) {
+    int res = 0;
+    for (int i = 0; str[i] != '\0'; ++i)
+        res = res * 10 + str[i] - '0';
+    return res;
+}
+
 void putInt(int x) {
 	char buff[12]; 
 	itoa(x,buff);

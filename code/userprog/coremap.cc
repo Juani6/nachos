@@ -139,7 +139,7 @@ CoreMap::SendToSwap(unsigned pfn) {
 		if (owner == nullptr) return; // Esto no deberia pasar
 
     if (vpn >= owner->space->GetNumberPages()) {
-        DEBUG('a', "ERROR: Intento de SwapOut de VPN inválida %u en marco %u\n", vpn, pfn);
+        DEBUG('e', "ERROR: Intento de SwapOut de VPN inválida %u en marco %u\n", vpn, pfn);
         arr[pfn].isFree = true; // Liberamos el marco corrupto
         return;
     }

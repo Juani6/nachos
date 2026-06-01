@@ -34,7 +34,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
     numPages = DivRoundUp(size, PAGE_SIZE);
     size = numPages * PAGE_SIZE;
     pageTable = new TranslationEntry[numPages];
-    DEBUG('a', "Initializing address space, num pages %u, size %u\n",numPages, size);
+    DEBUG('A', "Initializing address space, num pages %u, size %u\n",numPages, size);
     
 #ifdef SWAP
     shadowTable = new ShadowTable[numPages];
@@ -80,7 +80,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
         mMapLock->Acquire();
 #ifdef SWAP
         pfn = coreMap->FindPage(owner,i);
-        DEBUG('a', "Physical page number: %d\n", pfn);
+        DEBUG('A', "Physical page number: %d\n", pfn);
         
         ASSERT(pfn != -1);
         
@@ -110,7 +110,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
     // segment and the stack segment.
     for (unsigned i = 0; i < numPages; i++) {
         if (pageTable[i].physicalPage != (unsigned)-1) {
-            DEBUG('a', "Limpiando página física: %u\n", pageTable[i].physicalPage);
+            DEBUG('A', "Limpiando página física: %u\n", pageTable[i].physicalPage);
             memset(&mainMemory[pageTable[i].physicalPage * PAGE_SIZE], 0, PAGE_SIZE);
         }
     }
@@ -121,12 +121,12 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
     
     if (codeSize > 0) {
         uint32_t virtualAddr = exe->GetCodeAddr();
-        DEBUG('a', "Initializing code segment, at 0x%X, size %u\n", virtualAddr, codeSize);
+        DEBUG('A', "Initializing code segment, at 0x%X, size %u\n", virtualAddr, codeSize);
         ExeRead(virtualAddr,codeSize,pageTable,exe,CODE, owner);
     }
     if (initDataSize > 0) {
         uint32_t virtualAddr = exe->GetInitDataAddr();
-        DEBUG('a', "Initializing data segment, at 0x%X, size %u\n",virtualAddr, initDataSize);
+        DEBUG('A', "Initializing data segment, at 0x%X, size %u\n",virtualAddr, initDataSize);
         ExeRead(virtualAddr,initDataSize,pageTable,exe,DATA, owner);           
     }
     for (unsigned i = 0; i < numPages; i++) {
@@ -140,7 +140,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
 
 void
 AddressSpace::LoadPage(unsigned vpn) {
-    DEBUG('a', ">>> ENTRANDO A LOADPAGE CON VPN: %u <<<\n", vpn);
+    DEBUG('A', ">>> ENTRANDO A LOADPAGE CON VPN: %u <<<\n", vpn);
     stats->numDemand++;
     uint32_t codeSize = exe->GetCodeSize();
     uint32_t dataSize = exe->GetInitDataSize();
@@ -149,7 +149,7 @@ AddressSpace::LoadPage(unsigned vpn) {
 #ifdef SWAP
     int pfn = coreMap->FindPage(owner,vpn);
     coreMap->PinPage(pfn);
-    DEBUG('a', "Physical page number: %d\n", pfn);
+    DEBUG('A', "Physical page number: %d\n", pfn);
     ASSERT(pfn != -1);
     pageTable[vpn].physicalPage = (unsigned) pfn;
     coreMap->UnPinPage(pfn);
@@ -281,7 +281,7 @@ AddressSpace::InitRegisters()
     // allocated the stack; but subtract off a bit, to make sure we do not
     // accidentally reference off the end!
     machine->WriteRegister(STACK_REG, numPages * PAGE_SIZE - 16);
-    DEBUG('a', "Initializing stack register to %u\n",
+    DEBUG('A', "Initializing stack register to %u\n",
           numPages * PAGE_SIZE - 16);
 }
 
@@ -389,9 +389,9 @@ static void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTa
         #endif
             physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + offset;
         
-        DEBUG('a', "Accediendo %u %u\n",vpn, offset);
+        DEBUG('A', "Accediendo %u %u\n",vpn, offset);
 
-        DEBUG('a', "ReadBlock: bytesRe|ad=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
+        DEBUG('A', "ReadBlock: bytesRe|ad=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
         if (data == CODE)
             exe->ReadCodeBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
         if (data == DATA)

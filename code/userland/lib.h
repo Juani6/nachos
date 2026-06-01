@@ -16,6 +16,8 @@ void reverse(char str[],int len);
 // size of string need to be the quantity of digits thats n has (+1 if n is negative) 
 void itoa(int n, char* str);
 
+int atoi2(char* str);
+
 void putInt(int x);
 
 
