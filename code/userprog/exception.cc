@@ -459,7 +459,7 @@ SyscallHandler(ExceptionType _et)
 
 #ifdef SWAP
 static void LoadFromSwap(Thread* owner, unsigned vpn) {
-    if(owner->space->shadowTable[vpn].isInSwap) {
+    if(owner->space->IsInSwap(vpn)) {
             stats->numSwapIn++;
             mMapLock->Acquire();
             unsigned fpn = coreMap->FindPage(owner, vpn);
@@ -471,7 +471,7 @@ static void LoadFromSwap(Thread* owner, unsigned vpn) {
             owner->space->GetPageTable()[vpn].valid = true;
             owner->space->GetPageTable()[vpn].dirty = false;
             owner->space->GetPageTable()[vpn].use   = true;
-            owner->space->shadowTable[vpn].isInSwap = false;
+            owner->space->InSwap(vpn);
             coreMap->UnPinPage(fpn);
         }
         #ifdef DEMAND_LOADING
@@ -494,7 +494,6 @@ PageFaultHandler(ExceptionType _et) {
     ASSERT(owner != nullptr);
     ASSERT(owner->space != nullptr);  // si esto falla, el thread terminó
     stats->numPageFaults++;
-    
     
     static unsigned tlb_index = 0;
 

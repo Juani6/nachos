@@ -214,7 +214,7 @@ CoreMap::SendToSwap(unsigned pfn) {
         return;
     }
 				
-		owner->space->shadowTable[vpn].isInSwap = true;
+		owner->space->InSwap(vpn);
 		pageTable[vpn].valid = false;
 		pageTable[vpn].physicalPage = (unsigned)-1;
     CheckTLB(pfn,owner);
@@ -229,7 +229,7 @@ CoreMap::SendToSwap(unsigned pfn) {
     // sector correspondiente del archivo
     memcpy(buff,&machine->mainMemory[physAddr],PAGE_SIZE);
 		swapFile->WriteAt(buff, PAGE_SIZE, PAGE_SIZE * vpn);
-		owner->space->shadowTable[vpn].isInSwap = true;
+		owner->space->InSwap(vpn);
 
     stats->numSwapOuts++;
 }

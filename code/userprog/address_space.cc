@@ -61,7 +61,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
         pageTable[i].dirty        = false;
         pageTable[i].readOnly     = false;
 #ifdef SWAP
-        shadowTable[i].isInSwap = false;
+        NotInSwap(i);
         shadowTable[i].vpn = i;
 #endif
     }
@@ -87,7 +87,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
         pageTable[i].physicalPage = (unsigned) pfn;
         coreMap->UnPinPage(pfn);
 
-        shadowTable[i].isInSwap = false;
+        NotInSwap(i);
         shadowTable[i].vpn = i;    
 #else
         pfn = memoryMap->Find();
@@ -325,6 +325,22 @@ AddressSpace::RestoreState()
         machine->GetMMU()->tlb[i].valid = false;
     }
     #endif
+}
+
+void
+AddressSpace::InSwap(unsigned vpn) {
+    shadowTable[vpn].isInSwap = true;
+}
+
+
+void
+AddressSpace::NotInSwap(unsigned vpn) {
+    shadowTable[vpn].isInSwap = false;
+}
+
+bool
+AddressSpace::IsInSwap(unsigned vpn) {
+    return shadowTable[vpn].isInSwap;
 }
 
 TranslationEntry*

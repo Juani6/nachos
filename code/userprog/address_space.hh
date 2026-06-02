@@ -56,22 +56,28 @@ public:
     TranslationEntry *GetPageTable();
 
     void LoadPage(unsigned vpn);
-    Executable* exe;
-    OpenFile* _executable_file;
+    unsigned GetNumberPages();
     char* CreateSwapName();
     OpenFile* GetSwapFile();
     
-    ShadowTable* shadowTable;
-    int pid;
-    unsigned GetNumberPages();
-private:
-    OpenFile* swapFile;
+    bool IsInSwap(unsigned vpn);
+    void InSwap(unsigned vpn);
+    void NotInSwap(unsigned vpn);
 
+    private:
+    OpenFile* swapFile;
+    
     /// Assume linear page table translation for now!
     TranslationEntry *pageTable;
     /// Number of pages in the virtual address space.
+    Executable* exe;
     unsigned numPages;
     Thread* owner;
+    
+    OpenFile* _executable_file;
+    
+    ShadowTable* shadowTable;
+    int pid;
 };
 
 
