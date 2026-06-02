@@ -360,37 +360,37 @@ static void syscall_SC_EXEC() {
 
 static void syscall_SC_JOIN() {
     int pid = machine->ReadRegister(4);
-            if (pid < 0 || Table<Thread*>::SIZE < (unsigned)pid ) {
-                DEBUG('e', "Pid invalido\n");
-                machine->WriteRegister(2,SC_ERROR);
-                return;
-            }
+    if (pid < 0 || Table<Thread*>::SIZE < (unsigned)pid ) {
+        DEBUG('e', "Pid invalido\n");
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
             
-            pTLock->Acquire();
-            Thread* hijo = processTable->Get(pid);
-            if(!hijo){
-                machine->WriteRegister(2,SC_ERROR);
-                pTLock->Release();
-                return;
-            }
+    pTLock->Acquire();
+    Thread* hijo = processTable->Get(pid);
+    if(!hijo){
+        machine->WriteRegister(2,SC_ERROR);
+        pTLock->Release();
+        return;
+    }
             
-            if(!hijo->IsJoinable()) {
-                fprintf(stderr, "Thread not joinable\n");
-                machine->WriteRegister(2,SC_ERROR);
-                pTLock->Release();
-                return;
-            }
-            pTLock->Release();
+    if(!hijo->IsJoinable()) {
+        fprintf(stderr, "Thread not joinable\n");
+        machine->WriteRegister(2,SC_ERROR);
+        pTLock->Release();
+        return;
+    }
+    pTLock->Release();
 
-            const char* sonName = hijo->GetName();
-            int exitStatus = hijo->Join();
-            
-            pTLock->Acquire();
-            processTable->Remove(pid);
-            free((char*)sonName);
-            pTLock->Release();
-            
-            machine->WriteRegister(2,exitStatus);
+    const char* sonName = hijo->GetName();
+    int exitStatus = hijo->Join();
+    
+    pTLock->Acquire();
+    processTable->Remove(pid);
+    free((char*)sonName);
+    pTLock->Release();
+    
+    machine->WriteRegister(2,exitStatus);
 }
 
 
@@ -482,12 +482,11 @@ static void LoadFromSwap(Thread* owner, unsigned vpn) {
             owner->space->InSwap(vpn);
             coreMap->UnPinPage(fpn);
         }
-        #ifdef DEMAND_LOADING
+    #ifdef DEMAND_LOADING
         else {
             owner->space->LoadPage(vpn);
-        } 
-        #else 
-        #endif
+        }  
+    #endif
 }
 #endif
 

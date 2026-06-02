@@ -36,15 +36,12 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 		i++;
 	}
 	unsigned idx = i;
-	//DEBUG('a', "idx : %d\n",idx);
 	
 	if (i == size) {
 		do {
 			idx = PickVictim();
-		//DEBUG('a', "Picking victim...\n");
 		} while (arr[idx].isPinned);
 		PinPage(idx);
-		 //DEBUG('a',"Enviando la pagina %u a swap\n",idx);
 		SendToSwap(idx);
 	} 
 	else {
@@ -53,6 +50,7 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 	arr[idx].isFree = 0;
 	arr[idx].owner = owner;
 	arr[idx].vpn = _vpn;
+	DEBUG('A', "Physical page number: %d\n", idx);
 	return idx;
 }
 

@@ -156,6 +156,10 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
 }
 
 
+
+/*
+Funcion diseñada para cargar paginas on demand
+*/
 void
 AddressSpace::LoadPage(unsigned vpn) {
     DEBUG('A', ">>> ENTRANDO A LOADPAGE CON VPN: %u <<<\n", vpn);
@@ -167,8 +171,6 @@ AddressSpace::LoadPage(unsigned vpn) {
 #ifdef SWAP
     int pfn = coreMap->FindPage(owner,vpn);
     ASSERT(pfn != -1);
-    coreMap->PinPage(pfn);
-    DEBUG('A', "Physical page number: %d\n", pfn);
     pageTable[vpn].physicalPage = (unsigned) pfn;
     coreMap->UnPinPage(pfn);
 #else
@@ -193,7 +195,6 @@ AddressSpace::LoadPage(unsigned vpn) {
     }
     // Si estamos en espacio de TEXT
     if (codeSize > 0 && segOffset < codeSize) {
-        //uint32_t virtualAddr = exe->GetCodeAddr();
         uint32_t codeRemaining = codeSize - segOffset;
         uint32_t codeToRead = (uint32_t)PAGE_SIZE < codeRemaining ? PAGE_SIZE : codeRemaining;
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE;
@@ -203,17 +204,15 @@ AddressSpace::LoadPage(unsigned vpn) {
     }
     // Existe el data, se encuentra en el binario y en particular sobre el data
     if (dataSize > 0 && segOffset < tamBinario && segOffset + PAGE_SIZE > codeSize) {
-        //uint32_t virtualAddr = exe->GetInitDataAddr();
         // si la pagina es hibrida, es decir tiene data y codigo calculamos donde arranca el codigo
         uint32_t dataOffsetPagina = segOffset < codeSize ? codeSize - segOffset : 0;
         // si la pagina es data pura calculamos el offset
         uint32_t dataFileOffset = segOffset > codeSize ? segOffset - codeSize : 0;
         
-        // Cuanto queda por leer
-        uint32_t dataRemaining = dataSize - dataFileOffset;
-        // Espacio disponible en la pagina
-        uint32_t availableSpace = PAGE_SIZE - dataOffsetPagina;
-        // Tomamos el mas chico entre lo que resta de pagina y los datos
+        
+        uint32_t dataRemaining = dataSize - dataFileOffset; // Cuanto queda por leer
+        
+        uint32_t availableSpace = PAGE_SIZE - dataOffsetPagina; // Espacio disponible en la pagina
         uint32_t dataToRead = availableSpace < dataRemaining ? availableSpace : dataRemaining;
         
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + dataOffsetPagina;
@@ -300,20 +299,7 @@ AddressSpace::GetNumberPages() {
 ///
 /// For now, nothing!
 void
-AddressSpace::SaveState()
-{
-    // Esto esta comentado por que no hace nada.
-    /* #ifdef USE_TLB
-    uint32_t vpn;
-    for (unsigned i = 0; i < TLB_SIZE; i++) {
-        if (machine->GetMMU()->tlb[i].valid) {
-            vpn = machine->GetMMU()->tlb[i].virtualPage;
-            pageTable[vpn].dirty = machine->GetMMU()->tlb[i].dirty;
-            pageTable[vpn].use = machine->GetMMU()->tlb[i].use;
-        }
-    }
-    #endif */
-}
+AddressSpace::SaveState(){}
 
 /// On a context switch, restore the machine state so that this address space
 /// can run.
@@ -369,7 +355,8 @@ AddressSpace::GetSwapFile() {
 
 
 
-//Setea los bloques de Data o Code previo a ejecutar un proceso
+// Setea los bloques de Data o Code previo a ejecutar un proceso
+// de manera naive (sin DEMAND_LOADING)
 void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data,Thread* owner) {
     
     // Este ASSERT es por las dudas
