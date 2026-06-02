@@ -30,7 +30,7 @@ unsigned
 CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 	
 	unsigned i = 0;
-
+	
 	// Buscamos una pagina que este libre y NO este pinneada 
 	while (i < size && !arr[i].isFree) {
 		i++;

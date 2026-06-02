@@ -24,12 +24,12 @@ enum exeRead {DATA, CODE};
 
 class Thread;
 
-void ExeRead(uint32_t virtualAddr, uint32_t size,
-    TranslationEntry* pageTable,Executable* exe,exeRead data, Thread* owner);
 
 typedef struct _shadowTable {
     bool isInSwap;
+    bool readOnly;
     unsigned vpn;
+
 }ShadowTable;
 
 
@@ -70,6 +70,7 @@ public:
     void InSwap(unsigned vpn);
     void NotInSwap(unsigned vpn);
 
+    bool GetReadFlag(unsigned vpn);
     private:
     
 
@@ -90,6 +91,8 @@ public:
     
     ShadowTable* shadowTable;
     int pid;
+
+    void ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data);
 };
 
 

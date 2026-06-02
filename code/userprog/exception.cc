@@ -475,9 +475,10 @@ static void LoadFromSwap(Thread* owner, unsigned vpn) {
             
             OpenFile* fd = owner->space->GetSwapFile();
             fd->ReadAt(&machine->mainMemory[coreMap->IdxToPhysAddr(fpn)],PAGE_SIZE,PAGE_SIZE*vpn);
-            owner->space->GetPageTable()[vpn].valid = true;
-            owner->space->GetPageTable()[vpn].dirty = false;
-            owner->space->GetPageTable()[vpn].use   = true;
+            owner->space->GetPageTable()[vpn].valid    = true;
+            owner->space->GetPageTable()[vpn].dirty    = false;
+            owner->space->GetPageTable()[vpn].use      = true;
+            owner->space->GetPageTable()[vpn].readOnly = owner->space->GetReadFlag(vpn); 
             owner->space->InSwap(vpn);
             coreMap->UnPinPage(fpn);
         }
@@ -502,7 +503,7 @@ PageFaultHandler(ExceptionType _et) {
     stats->numPageFaults++;
     
     static unsigned tlb_index = 0;
-
+    
     DEBUG('e', "[VPN]: %d\n",vpn);
     DEBUG('e', "SwapIn: owner=%s vpn=%X\n",owner->GetName(), vpn);
     if (!owner->space->GetPageTable()[vpn].valid) {
@@ -514,6 +515,9 @@ PageFaultHandler(ExceptionType _et) {
         
     }
     TranslationEntry page = owner->space->GetPageTable()[vpn];
+    
+        DEBUG('A', "TLB load VPN %u: readOnly=%d\n",
+            page.virtualPage, page.readOnly);
     
     if (machine->GetMMU()->tlb[tlb_index].valid) {
         unsigned tlbPage = machine->GetMMU()->tlb[tlb_index].virtualPage;
@@ -530,6 +534,14 @@ PageFaultHandler(ExceptionType _et) {
     tlb_index = (tlb_index + 1) % TLB_SIZE;
 }
 
+
+static void
+ReadOnlyHandler(ExceptionType _et) {
+    fprintf(stderr, "Trying to write over a read only page: %s, addrs %d.\n",
+            ExceptionTypeToString(_et), machine->ReadRegister(BAD_VADDR_REG));
+    syscall_SC_EXIT();
+    return;
+}
 /// By default, only system calls have their own handler.  All other
 /// exception types are assigned the default handler.
 void
@@ -538,7 +550,7 @@ SetExceptionHandlers()
     machine->SetHandler(NO_EXCEPTION,            &DefaultHandler);
     machine->SetHandler(SYSCALL_EXCEPTION,       &SyscallHandler);
     machine->SetHandler(PAGE_FAULT_EXCEPTION,    &PageFaultHandler);
-    machine->SetHandler(READ_ONLY_EXCEPTION,     &DefaultHandler);
+    machine->SetHandler(READ_ONLY_EXCEPTION,     &ReadOnlyHandler);
     machine->SetHandler(BUS_ERROR_EXCEPTION,     &DefaultHandler);
     machine->SetHandler(ADDRESS_ERROR_EXCEPTION, &DefaultHandler);
     machine->SetHandler(OVERFLOW_EXCEPTION,      &DefaultHandler);

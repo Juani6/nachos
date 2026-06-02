@@ -23,9 +23,6 @@ AddressSpace::InitSwapFile() {
     ASSERT(fileSystem->Create(swapName, numPages * PAGE_SIZE));
     swapFile = fileSystem->Open(swapName);
     free(swapName);
-    /* if (numPages <= coreMap->GetFreePages()) {
-        fprintf(stderr, "NO HAY PAGINAS\n");
-    } */
 }
 
 void
@@ -104,12 +101,12 @@ AddressSpace::InitLoadSegments() {
     if (codeSize > 0) {
         uint32_t virtualAddr = exe->GetCodeAddr();
         DEBUG('A', "Initializing code segment, at 0x%X, size %u\n", virtualAddr, codeSize);
-        ExeRead(virtualAddr,codeSize,pageTable,exe,CODE, owner);
+        ExeRead(virtualAddr,codeSize,CODE);
     }
     if (initDataSize > 0) {
         uint32_t virtualAddr = exe->GetInitDataAddr();
         DEBUG('A', "Initializing data segment, at 0x%X, size %u\n",virtualAddr, initDataSize);
-        ExeRead(virtualAddr,initDataSize,pageTable,exe,DATA, owner);           
+        ExeRead(virtualAddr,initDataSize,DATA);           
     }
     for (unsigned i = 0; i < numPages; i++) {
         if (pageTable[i].physicalPage != (unsigned) -1) {
@@ -163,6 +160,7 @@ Funcion diseñada para cargar paginas on demand
 void
 AddressSpace::LoadPage(unsigned vpn) {
     DEBUG('A', ">>> ENTRANDO A LOADPAGE CON VPN: %u <<<\n", vpn);
+    
     stats->numDemand++;
     uint32_t codeSize = exe->GetCodeSize();
     uint32_t dataSize = exe->GetInitDataSize();
@@ -186,9 +184,9 @@ AddressSpace::LoadPage(unsigned vpn) {
     memset(&machine->mainMemory[pageTable[vpn].physicalPage * PAGE_SIZE], 0, PAGE_SIZE);
     
     if (segOffset >= tamBinario) { // (vpn * PAGE_SIZE > codeSize + dataSize) 
-        #ifdef SWAP
+    #ifdef SWAP
         coreMap->UnPinPage(pfn);
-        #endif
+    #endif
         
         pageTable[vpn].valid = true;
         return;
@@ -198,9 +196,10 @@ AddressSpace::LoadPage(unsigned vpn) {
         uint32_t codeRemaining = codeSize - segOffset;
         uint32_t codeToRead = (uint32_t)PAGE_SIZE < codeRemaining ? PAGE_SIZE : codeRemaining;
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE;
-        if (codeToRead > 0 && segOffset < codeSize) {
-            exe->ReadCodeBlock(&machine->mainMemory[physAddr],codeToRead,segOffset);
-        }
+        exe->ReadCodeBlock(&machine->mainMemory[physAddr],codeToRead,segOffset);
+        pageTable[vpn].readOnly = (segOffset + PAGE_SIZE < codeSize);
+        shadowTable[vpn].readOnly = pageTable[vpn].readOnly;
+        
     }
     // Existe el data, se encuentra en el binario y en particular sobre el data
     if (dataSize > 0 && segOffset < tamBinario && segOffset + PAGE_SIZE > codeSize) {
@@ -214,16 +213,20 @@ AddressSpace::LoadPage(unsigned vpn) {
         
         uint32_t availableSpace = PAGE_SIZE - dataOffsetPagina; // Espacio disponible en la pagina
         uint32_t dataToRead = availableSpace < dataRemaining ? availableSpace : dataRemaining;
+
+        pageTable[vpn].readOnly = false; 
+        shadowTable[vpn].readOnly = false;
         
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + dataOffsetPagina;
         if (dataToRead > 0 && dataFileOffset < dataSize) {
             exe->ReadDataBlock(&machine->mainMemory[physAddr],dataToRead,dataFileOffset);
         }
-    
+    DEBUG('A', "VPN %u: segOffset=%u codeSize=%u dataSize=%u readOnly=%d\n",
+        vpn, segOffset, codeSize, dataSize, pageTable[vpn].readOnly);
     }        
-    #ifdef SWAP
+#ifdef SWAP
     coreMap->UnPinPage(pfn);
-    #endif
+#endif
     
     pageTable[vpn].valid = true;
 }
@@ -237,25 +240,25 @@ AddressSpace::~AddressSpace()
     for (unsigned i = 0; i < numPages; i++) {
         fpn = pageTable[i].physicalPage;
         if (fpn != (unsigned)-1) {
-            #ifdef SWAP
+        #ifdef SWAP
             if (coreMap->GetPage(fpn)->owner == owner) {
                 //mMapLock->Acquire();
                 coreMap->FreePage( (uint32_t) fpn);
                 //mMapLock->Release();
 
             }
-            #else
+        #else
             memoryMap->Clear(fpn);
-            #endif
+        #endif
         }
     }
-    #ifdef SWAP
+#ifdef SWAP
     char * swapName = CreateSwapName();
     delete swapFile;
     fileSystem->Remove(swapName);
     free(swapName);
     delete []shadowTable;
-    #endif 
+#endif 
     delete [] pageTable;
     delete exe;
     delete _executable_file;
@@ -353,11 +356,16 @@ AddressSpace::GetSwapFile() {
     return swapFile;
 }
 
+bool
+AddressSpace::GetReadFlag(unsigned vpn) {
+    return shadowTable[vpn].readOnly;
+}
 
 
 // Setea los bloques de Data o Code previo a ejecutar un proceso
 // de manera naive (sin DEMAND_LOADING)
-void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data,Thread* owner) {
+void 
+AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
     
     // Este ASSERT es por las dudas
     ASSERT(data == DATA || data == CODE);
@@ -400,10 +408,16 @@ void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Exe
         DEBUG('A', "Accediendo %u %u\n",vpn, offset);
 
         DEBUG('A', "ReadBlock: bytesRe|ad=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
-        if (data == CODE)
+        if (data == CODE) {
+            pageTable[vpn].readOnly = true;
+            shadowTable[vpn].readOnly = true;
             exe->ReadCodeBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
-        if (data == DATA)
+        }
+        if (data == DATA) {
             exe->ReadDataBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
+            pageTable[vpn].readOnly = false; 
+            shadowTable[vpn].readOnly = false; 
+        }
         bytesRead += sizeToRead;
         #ifdef SWAP
             coreMap->UnPinPage(pfn);
