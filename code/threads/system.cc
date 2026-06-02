@@ -50,6 +50,12 @@ Lock* pTLock;
 Lock* mMapLock;
 #endif
 
+
+#ifdef SWAP
+    #include <random>
+    #include <time.h>
+#endif
+
 // External definition, to allow us to take a pointer to this function.
 extern void Cleanup();
 
@@ -220,6 +226,7 @@ Initialize(int argc, char **argv)
     memoryMap = new Bitmap(numPhysicalPages);
     #else
     coreMap = new CoreMap(numPhysicalPages);
+    srand(time(NULL));
     #endif
     mMapLock = new Lock("Lock for the memory map");
     SetExceptionHandlers();
