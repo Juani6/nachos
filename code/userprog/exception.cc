@@ -457,24 +457,9 @@ SyscallHandler(ExceptionType _et)
     IncrementPC();
 }
 
-static void
-PageFaultHandler(ExceptionType _et) {
-    unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
-
-    DEBUG('e', "Stack reg :%X\n", machine->ReadRegister(STACK_REG));
-    DEBUG('e', "badaddrs %X\n", badAddrs);
-    unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
-    Thread* owner = currentThread;
-    ASSERT(owner != nullptr);
-    ASSERT(owner->space != nullptr);  // si esto falla, el thread terminó
-    static unsigned tlb_index = 0;
-    stats->numPageFaults++;
-
-    DEBUG('e', "[VPN]: %d\n",vpn);
-    DEBUG('e', "SwapIn: owner=%s vpn=%X\n",owner->GetName(), vpn);
-    if (!owner->space->GetPageTable()[vpn].valid) {
-        #ifdef SWAP
-        if(owner->space->shadowTable[vpn].isInSwap) {
+#ifdef SWAP
+static void LoadFromSwap(Thread* owner, unsigned vpn) {
+    if(owner->space->shadowTable[vpn].isInSwap) {
             stats->numSwapIn++;
             mMapLock->Acquire();
             unsigned fpn = coreMap->FindPage(owner, vpn);
@@ -495,7 +480,29 @@ PageFaultHandler(ExceptionType _et) {
         } 
         #else 
         #endif
-        
+}
+#endif
+
+static void
+PageFaultHandler(ExceptionType _et) {
+    unsigned badAddrs = (unsigned) machine->ReadRegister(BAD_VADDR_REG);
+    DEBUG('e', "Stack reg :%X\n", machine->ReadRegister(STACK_REG));
+    DEBUG('e', "badaddrs %X\n", badAddrs);
+    
+    unsigned vpn = (unsigned) badAddrs / PAGE_SIZE;
+    Thread* owner = currentThread;
+    ASSERT(owner != nullptr);
+    ASSERT(owner->space != nullptr);  // si esto falla, el thread terminó
+    stats->numPageFaults++;
+    
+    
+    static unsigned tlb_index = 0;
+
+    DEBUG('e', "[VPN]: %d\n",vpn);
+    DEBUG('e', "SwapIn: owner=%s vpn=%X\n",owner->GetName(), vpn);
+    if (!owner->space->GetPageTable()[vpn].valid) {
+        #ifdef SWAP
+        LoadFromSwap(owner,vpn);
         #else
         owner->space->LoadPage(vpn);
         #endif
