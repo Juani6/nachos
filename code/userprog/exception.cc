@@ -285,6 +285,10 @@ static void syscall_SC_EXIT() {
     currentThread->SetExitStatus(exitStatus);
     
     pTLock->Acquire();
+    // Si alive es mas de uno estamos en la shell y hay mas procesos
+    // si es uno o menos (rari) es por que es el main. Y cuando termina tenemos
+    // que matar el nachos (:O)
+    // tecnicamente es O(1) (SIZE cte) 
     int alive = 0;
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
         if (processTable->Get((unsigned)i) != nullptr) {
@@ -293,6 +297,7 @@ static void syscall_SC_EXIT() {
     }
     pTLock->Release();
     stats->Debug();
+    
     if (alive > 1) {
         currentThread->Finish();
     }
@@ -363,18 +368,21 @@ static void syscall_SC_JOIN() {
             
             pTLock->Acquire();
             Thread* hijo = processTable->Get(pid);
-            pTLock->Release();
             if(!hijo){
                 machine->WriteRegister(2,SC_ERROR);
+                pTLock->Release();
                 return;
             }
-            const char* sonName = hijo->GetName();
             
             if(!hijo->IsJoinable()) {
                 fprintf(stderr, "Thread not joinable\n");
                 machine->WriteRegister(2,SC_ERROR);
+                pTLock->Release();
                 return;
             }
+            pTLock->Release();
+
+            const char* sonName = hijo->GetName();
             int exitStatus = hijo->Join();
             
             pTLock->Acquire();

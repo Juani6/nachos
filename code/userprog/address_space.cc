@@ -166,9 +166,9 @@ AddressSpace::LoadPage(unsigned vpn) {
     mMapLock->Acquire();
 #ifdef SWAP
     int pfn = coreMap->FindPage(owner,vpn);
+    ASSERT(pfn != -1);
     coreMap->PinPage(pfn);
     DEBUG('A', "Physical page number: %d\n", pfn);
-    ASSERT(pfn != -1);
     pageTable[vpn].physicalPage = (unsigned) pfn;
     coreMap->UnPinPage(pfn);
 #else
@@ -191,19 +191,6 @@ AddressSpace::LoadPage(unsigned vpn) {
         pageTable[vpn].valid = true;
         return;
     }
-
-    uint32_t bytesToReadFromDisk = PAGE_SIZE;
-    if (segOffset + PAGE_SIZE > tamBinario) {
-        // La pagina es hibrida de datos entre .Data y .BSS/Stack
-        bytesToReadFromDisk = tamBinario - segOffset;
-    }
-    if (bytesToReadFromDisk < (uint32_t) PAGE_SIZE) {
-        // Escribimos los ceros que faltan
-        uint32_t restoStack = PAGE_SIZE - bytesToReadFromDisk;
-        uint32_t physOffset = pageTable[vpn].physicalPage * PAGE_SIZE + bytesToReadFromDisk;
-        memset(&machine->mainMemory[physOffset],0,restoStack);
-    }
-    
     // Si estamos en espacio de TEXT
     if (codeSize > 0 && segOffset < codeSize) {
         //uint32_t virtualAddr = exe->GetCodeAddr();
