@@ -255,8 +255,7 @@ static void syscall_SC_WRITE() {
     if (fid == CONSOLE_OUTPUT) {
     char c;
     DEBUG('e', "Size = %d\n", size);
-        ReadBufferFromUser(buffAddr, auxBuff, size);
-        //DEBUG('e', "User buffer : %s\n",auxBuff);    
+        ReadBufferFromUser(buffAddr, auxBuff, size);  
         for(writeBytes = 0; writeBytes < size; writeBytes++) {
             c = auxBuff[writeBytes];
             synchConsole->PutChar(c);
@@ -291,7 +290,7 @@ static void syscall_SC_EXIT() {
     // tecnicamente es O(1) (SIZE cte) 
     int alive = 0;
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
-        if (processTable->Get((unsigned)i) != nullptr) {
+        if (processTable->Get(i) != nullptr) {
             alive++;
         }
     }

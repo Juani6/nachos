@@ -54,8 +54,9 @@ Thread::Thread(const char *threadName,bool join,int prio)
     /// EJ 4 Plancha 2
 
     joinable = join;
-    if(joinable)
+    if(joinable) {
         pipe = new Channel("Pipe");
+    }
     // EJ 5
     ASSERT(prio >= 0 && prio < 10);
     priority = prio;
@@ -211,11 +212,11 @@ Thread::Finish()
     /// EJ 4 Plancha 2
     if(joinable) {
 			DEBUG('s',"Thread Joinable [%s] termino\n",this->GetName());
-			#ifdef USER_PROGRAM
+		#ifdef USER_PROGRAM
             pipe->Write(this->exitStatus);
-            #else
+        #else
             pipe->Write(1);
-            #endif
+        #endif
 		}
     DEBUG('t', "Finishing thread \"%s\"\n", GetName());
 

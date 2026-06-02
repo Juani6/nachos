@@ -13,8 +13,11 @@ si se compilaba con mas de 35
 #include "../userprog/syscall.h"
 #include "lib.h"
 
-int fib(unsigned obj) {
-	if (obj <= 1) {
+int fib(int obj) {
+	if (obj <= 0) {
+		return 0;
+	}
+	if (obj == 1) {
 		return 1;
 	}
 	
@@ -22,7 +25,7 @@ int fib(unsigned obj) {
 }
 
 int main(int argc, char* argv[]) {
-if (argc < 1)
+if (argc < 2)
 		return -1;
 	int obj = fib(atoi2(argv[1]));
 	
