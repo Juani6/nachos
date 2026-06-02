@@ -13,30 +13,10 @@
 #include <string.h>
 #include <stdio.h>
 
-enum exeRead {DATA, CODE};
-static void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data, Thread* owner);
-/// First, set up the translation from program memory to physical memory.
-/// For now, this is really simple (1:1), since we are only uniprogramming,
-/// and we have a single unsegmented page table.
-AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _owner)
-{
-    pid = _pid;
-    _executable_file = executable_file;
-    ASSERT(executable_file != nullptr);
-    
-    exe = new Executable(executable_file);
-    ASSERT(exe->CheckMagic());
-    
-    owner = _owner == nullptr ? currentThread : _owner;
-    owner->space = this;
-    unsigned size = exe->GetSize() + USER_STACK_SIZE;
-      // We need to increase the size to leave room for the stack.
-    numPages = DivRoundUp(size, PAGE_SIZE);
-    size = numPages * PAGE_SIZE;
-    pageTable = new TranslationEntry[numPages];
-    DEBUG('A', "Initializing address space, num pages %u, size %u\n",numPages, size);
-    
-#ifdef SWAP
+
+
+void 
+AddressSpace::InitSwapFile() {
     shadowTable = new ShadowTable[numPages];
     
     char *swapName = CreateSwapName();
@@ -46,11 +26,10 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
     /* if (numPages <= coreMap->GetFreePages()) {
         fprintf(stderr, "NO HAY PAGINAS\n");
     } */
-#else
-    ASSERT(numPages <= memoryMap->CountClear());    
-#endif
+}
 
-#ifdef DEMAND_LOADING // ifdef DEMANG LOADING 
+void
+AddressSpace::InitPageTableOnDemand() {
 
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
@@ -65,11 +44,11 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
         shadowTable[i].vpn = i;
 #endif
     }
-    
-#endif
-    
-    
-#ifndef DEMAND_LOADING
+
+}
+
+void
+AddressSpace:: InitPageTableNaive() {
 
 // First, set up the translation.
     int pfn;
@@ -114,7 +93,10 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
             memset(&mainMemory[pageTable[i].physicalPage * PAGE_SIZE], 0, PAGE_SIZE);
         }
     }
-    
+}
+
+void
+AddressSpace::InitLoadSegments() {
     // Then, copy in the code and data segments into memory.
     uint32_t codeSize = exe->GetCodeSize();
     uint32_t initDataSize = exe->GetInitDataSize();
@@ -134,6 +116,42 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
             pageTable[i].valid = true;
         }
     }
+}
+
+
+
+/// First, set up the translation from program memory to physical memory.
+/// For now, this is really simple (1:1), since we are only uniprogramming,
+/// and we have a single unsegmented page table.
+AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _owner)
+{
+    pid = _pid;
+    _executable_file = executable_file;
+    ASSERT(executable_file != nullptr);
+    
+    exe = new Executable(executable_file);
+    ASSERT(exe->CheckMagic());
+    
+    owner = _owner == nullptr ? currentThread : _owner;
+    owner->space = this;
+    unsigned size = exe->GetSize() + USER_STACK_SIZE;
+      // We need to increase the size to leave room for the stack.
+    numPages = DivRoundUp(size, PAGE_SIZE);
+    size = numPages * PAGE_SIZE;
+    pageTable = new TranslationEntry[numPages];
+    DEBUG('A', "Initializing address space, num pages %u, size %u\n",numPages, size);
+    
+#ifdef SWAP
+    InitSwapFile();
+#else
+    ASSERT(numPages <= memoryMap->CountClear());    
+#endif
+
+#ifdef DEMAND_LOADING // ifdef DEMANG LOADING 
+    InitPageTableOnDemand();
+#else 
+    InitPageTableNaive();
+    InitLoadSegments();
 #endif
 }
 
@@ -233,15 +251,15 @@ AddressSpace::~AddressSpace()
     for (unsigned i = 0; i < numPages; i++) {
         fpn = pageTable[i].physicalPage;
         if (fpn != (unsigned)-1) {
-            #ifndef SWAP
-            memoryMap->Clear(fpn);
-            #else
+            #ifdef SWAP
             if (coreMap->GetPage(fpn)->owner == owner) {
                 //mMapLock->Acquire();
                 coreMap->FreePage( (uint32_t) fpn);
                 //mMapLock->Release();
 
             }
+            #else
+            memoryMap->Clear(fpn);
             #endif
         }
     }
@@ -365,13 +383,13 @@ AddressSpace::GetSwapFile() {
 
 
 //Setea los bloques de Data o Code previo a ejecutar un proceso
-static void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data,Thread* owner) {
+void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTable,Executable* exe,exeRead data,Thread* owner) {
     
     // Este ASSERT es por las dudas
     ASSERT(data == DATA || data == CODE);
     ASSERT(size != 0);
     char *mainMemory = machine->mainMemory;
-    unsigned pfn;
+    
     unsigned physAddr;
     uint32_t vpn;
     uint32_t offset;
@@ -392,7 +410,7 @@ static void ExeRead(uint32_t virtualAddr, uint32_t size,TranslationEntry* pageTa
         // Si los bytes que restan son menos que el espacio en pagina escribo eso.
         sizeToRead = bytesRemaining < spaceInPage ? bytesRemaining : spaceInPage;
         #ifdef SWAP
-        pfn =  pageTable[vpn].physicalPage;
+        unsigned pfn =  pageTable[vpn].physicalPage;
         if (pfn == (unsigned)-1) {
             mMapLock->Acquire();
             pfn = coreMap->FindPage(owner,vpn);

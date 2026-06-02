@@ -20,12 +20,18 @@
 
 const unsigned USER_STACK_SIZE = 1024 * 4;  ///< Increase this as necessary!
 
+enum exeRead {DATA, CODE};
+
+class Thread;
+
+void ExeRead(uint32_t virtualAddr, uint32_t size,
+    TranslationEntry* pageTable,Executable* exe,exeRead data, Thread* owner);
+
 typedef struct _shadowTable {
     bool isInSwap;
     unsigned vpn;
 }ShadowTable;
 
-class Thread;
 
 class AddressSpace {
 public:
@@ -65,6 +71,12 @@ public:
     void NotInSwap(unsigned vpn);
 
     private:
+    
+
+    void InitSwapFile();
+    void InitPageTableOnDemand();
+    void InitPageTableNaive();
+    void InitLoadSegments();
     OpenFile* swapFile;
     
     /// Assume linear page table translation for now!

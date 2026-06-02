@@ -475,7 +475,7 @@ static void LoadFromSwap(Thread* owner, unsigned vpn) {
             coreMap->UnPinPage(fpn);
         }
         #ifdef DEMAND_LOADING
-        else{
+        else {
             owner->space->LoadPage(vpn);
         } 
         #else 
