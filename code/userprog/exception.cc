@@ -468,9 +468,9 @@ SyscallHandler(ExceptionType _et)
 static void LoadFromSwap(Thread* owner, unsigned vpn) {
     if(owner->space->IsInSwap(vpn)) {
             stats->numSwapIn++;
-            mMapLock->Acquire();
+            ///mMapLock->Acquire();
             unsigned fpn = coreMap->FindPage(owner, vpn);
-            mMapLock->Release();
+            //mMapLock->Release();
             owner->space->GetPageTable()[vpn].physicalPage = fpn;
             
             OpenFile* fd = owner->space->GetSwapFile();

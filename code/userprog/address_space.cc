@@ -53,8 +53,7 @@ AddressSpace:: InitPageTableNaive() {
     for (unsigned i = 0; i < numPages; i++) {
         pageTable[i].virtualPage  = i;
 
-        mMapLock->Acquire();
-#ifdef SWAP
+    #ifdef SWAP
         pfn = coreMap->FindPage(owner,i);
         DEBUG('A', "Physical page number: %d\n", pfn);
         
@@ -62,15 +61,16 @@ AddressSpace:: InitPageTableNaive() {
         
         pageTable[i].physicalPage = (unsigned) pfn;
         coreMap->UnPinPage(pfn);
-
+        
         NotInSwap(i);
         shadowTable[i].vpn = i;    
-#else
+    #else
+        mMapLock->Acquire();
         pfn = memoryMap->Find();
         ASSERT(pfn != -1);
         pageTable[i].physicalPage = (unsigned) pfn;
-#endif
         mMapLock->Release();
+    #endif
 
         pageTable[i].valid        = false;
         pageTable[i].use          = false;
@@ -165,30 +165,29 @@ AddressSpace::LoadPage(unsigned vpn) {
     uint32_t codeSize = exe->GetCodeSize();
     uint32_t dataSize = exe->GetInitDataSize();
 
-    mMapLock->Acquire();
-#ifdef SWAP
+    #ifdef SWAP
     int pfn = coreMap->FindPage(owner,vpn);
     ASSERT(pfn != -1);
     pageTable[vpn].physicalPage = (unsigned) pfn;
-    coreMap->UnPinPage(pfn);
-#else
+    //coreMap->UnPinPage(pfn);
+    #else
+    mMapLock->Acquire();
     int pfn = memoryMap->Find();
     ASSERT(pfn != -1);
     pageTable[vpn].physicalPage = (unsigned) pfn;
-#endif
     mMapLock->Release();
+#endif
 
     unsigned segOffset = vpn * PAGE_SIZE;
     uint32_t tamBinario = codeSize + dataSize;
     
     memset(&machine->mainMemory[pageTable[vpn].physicalPage * PAGE_SIZE], 0, PAGE_SIZE);
     
-    if (segOffset >= tamBinario) { // (vpn * PAGE_SIZE > codeSize + dataSize) 
-    #ifdef SWAP
-        coreMap->UnPinPage(pfn);
-    #endif
-        
+    if (segOffset >= tamBinario) { // (vpn * PAGE_SIZE > codeSize + dataSize)     
         pageTable[vpn].valid = true;
+        #ifdef SWAP
+        coreMap->UnPinPage(pfn);
+        #endif
         return;
     }
     // Si estamos en espacio de TEXT
@@ -220,15 +219,15 @@ AddressSpace::LoadPage(unsigned vpn) {
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + dataOffsetPagina;
         if (dataToRead > 0 && dataFileOffset < dataSize) {
             exe->ReadDataBlock(&machine->mainMemory[physAddr],dataToRead,dataFileOffset);
-        }
+        }    
     DEBUG('A', "VPN %u: segOffset=%u codeSize=%u dataSize=%u readOnly=%d\n",
         vpn, segOffset, codeSize, dataSize, pageTable[vpn].readOnly);
     }        
+    pageTable[vpn].valid = true;
 #ifdef SWAP
     coreMap->UnPinPage(pfn);
 #endif
     
-    pageTable[vpn].valid = true;
 }
 
 /// Deallocate an address space.
@@ -394,9 +393,9 @@ AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
         #ifdef SWAP
         unsigned pfn =  pageTable[vpn].physicalPage;
         if (pfn == (unsigned)-1) {
-            mMapLock->Acquire();
+            //mMapLock->Acquire();
             pfn = coreMap->FindPage(owner,vpn);
-            mMapLock->Release();
+            //mMapLock->Release();
             pageTable[vpn].physicalPage = pfn;
         }
         else {

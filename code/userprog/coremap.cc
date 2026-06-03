@@ -29,6 +29,7 @@ CoreMap::IdxToPhysAddr(uint32_t idx) {
 unsigned
 CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 	
+	mMapLock->Acquire();
 	unsigned i = 0;
 	
 	// Buscamos una pagina que este libre y NO este pinneada 
@@ -42,7 +43,9 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 			idx = PickVictim();
 		} while (arr[idx].isPinned);
 		PinPage(idx);
+		mMapLock->Release();
 		SendToSwap(idx);
+		mMapLock->Acquire();
 	} 
 	else {
 		PinPage(idx);
@@ -51,6 +54,7 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 	arr[idx].owner = owner;
 	arr[idx].vpn = _vpn;
 	DEBUG('A', "Physical page number: %d\n", idx);
+	mMapLock->Release();
 	return idx;
 }
 
@@ -217,7 +221,6 @@ CoreMap::SendToSwap(unsigned pfn) {
 		pageTable[vpn].physicalPage = (unsigned)-1;
     CheckTLB(pfn,owner);
 
-
     // Obtenemos el archivo de swap
     OpenFile* swapFile = owner->space->GetSwapFile();
     
@@ -227,7 +230,6 @@ CoreMap::SendToSwap(unsigned pfn) {
     // sector correspondiente del archivo
     memcpy(buff,&machine->mainMemory[physAddr],PAGE_SIZE);
 		swapFile->WriteAt(buff, PAGE_SIZE, PAGE_SIZE * vpn);
-		owner->space->InSwap(vpn);
 
     stats->numSwapOuts++;
 }
