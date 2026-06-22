@@ -209,6 +209,9 @@ static void syscall_SC_READ() {
             char *auxBuff = new char[size]; 
             int readBytes;
             if (fid == CONSOLE_INPUT) {
+                if (synchConsole == nullptr) {
+                    synchConsole = new SynchConsole();
+                }
                 char c;
                 readBytes = 0;
                 do  {
@@ -253,6 +256,9 @@ static void syscall_SC_WRITE() {
     char *auxBuff = new char[size]; 
     int writeBytes;
     if (fid == CONSOLE_OUTPUT) {
+        if (synchConsole == nullptr) {
+            synchConsole = new SynchConsole();
+        }
     char c;
     DEBUG('e', "Size = %d\n", size);
         ReadBufferFromUser(buffAddr, auxBuff, size);  

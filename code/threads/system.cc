@@ -217,7 +217,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     Debugger *d = debugUserProg ? new Debugger : nullptr;
     machine = new Machine(d, numPhysicalPages);  // This must come first.
-    synchConsole = new SynchConsole();
+    synchConsole = nullptr;
 
     pTLock = new Lock("Process table lock");
     processTable = new Table<Thread*>;
@@ -289,7 +289,10 @@ Cleanup()
     delete mMapLock;
     
     delete machine;
-    delete synchConsole;
+    if (synchConsole != nullptr) {
+        delete synchConsole;
+
+    }
     delete processTable;
     delete pTLock;
 #endif

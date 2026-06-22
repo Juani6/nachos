@@ -383,7 +383,7 @@ AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
     while (bytesRead < size) {
         vpn    = (unsigned) (virtualAddr + bytesRead) / PAGE_SIZE;
         offset = (unsigned) (virtualAddr + bytesRead) % PAGE_SIZE;
-            
+        ASSERT(vpn < numPages);
         bytesRemaining = size - bytesRead;
 
         spaceInPage = PAGE_SIZE - offset;
