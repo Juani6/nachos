@@ -277,7 +277,7 @@ Cleanup()
     if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
-        free((char*)t->GetName());
+        //free((char*)t->GetName());
     }
 
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {

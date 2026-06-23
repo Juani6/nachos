@@ -197,7 +197,7 @@ AddressSpace::LoadPage(unsigned vpn) {
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE;
         exe->ReadCodeBlock(&machine->mainMemory[physAddr],codeToRead,segOffset);
         pageTable[vpn].readOnly = (segOffset + PAGE_SIZE < codeSize);
-        shadowTable[vpn].readOnly = pageTable[vpn].readOnly;
+        //shadowTable[vpn].readOnly = pageTable[vpn].readOnly;
         
     }
     // Existe el data, se encuentra en el binario y en particular sobre el data
@@ -214,7 +214,7 @@ AddressSpace::LoadPage(unsigned vpn) {
         uint32_t dataToRead = availableSpace < dataRemaining ? availableSpace : dataRemaining;
 
         pageTable[vpn].readOnly = false; 
-        shadowTable[vpn].readOnly = false;
+        //shadowTable[vpn].readOnly = false;
         
         uint32_t physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + dataOffsetPagina;
         if (dataToRead > 0 && dataFileOffset < dataSize) {
@@ -409,12 +409,16 @@ AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
         DEBUG('A', "ReadBlock: bytesRe|ad=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
         if (data == CODE) {
             pageTable[vpn].readOnly = true;
+            #ifdef SWAP
             shadowTable[vpn].readOnly = true;
+            #endif
             exe->ReadCodeBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
         }
         if (data == DATA) {
             exe->ReadDataBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
-            pageTable[vpn].readOnly = false; 
+            #ifdef SWAP
+            shadowTable[vpn].readOnly = false;
+            #endif 
             shadowTable[vpn].readOnly = false; 
         }
         bytesRead += sizeToRead;
