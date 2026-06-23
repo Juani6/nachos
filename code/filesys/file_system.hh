@@ -135,6 +135,9 @@ public:
     /// List all the files and their contents.
     void Print();
 
+    void DeletePhysicalSector(int sector);
+    
+    Lock* fsLock;
 private:
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.

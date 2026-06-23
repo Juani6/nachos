@@ -85,13 +85,15 @@ private:
 };
 
 #else // FILESYS
+
+#include "file_table.hh"
 class FileHeader;
 
 class OpenFile {
 public:
 
     /// Open a file whose header is located at `sector` on the disk.
-    OpenFile(int sector);
+    OpenFile(int sector, FileTableEntry* _entry = nullptr);
 
     /// Close the file.
     ~OpenFile();
@@ -117,6 +119,7 @@ public:
   private:
     FileHeader *hdr;  ///< Header for this file.
     unsigned seekPosition;  ///< Current position within the file.
+    FileTableEntry* tableEntry;
 };
 
 #endif

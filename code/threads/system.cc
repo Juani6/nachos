@@ -29,6 +29,11 @@ Statistics *stats;            ///< Performance metrics.
 Timer *timer;                 ///< The hardware timer device, for invoking
 ///< context switches.
 
+
+#ifdef FILESYS
+FileTable *fileTable;
+#endif
+
 #ifdef FILESYS_NEEDED
 FileSystem *fileSystem;
 #endif
@@ -206,6 +211,7 @@ Initialize(int argc, char **argv)
     char staticnNameMain[] = "main";
     char *nameMain = strdup(staticnNameMain);
     currentThread = new Thread(nameMain,0);
+    free(nameMain);
     #else
     currentThread = new Thread("main",0);
     #endif
@@ -235,6 +241,7 @@ Initialize(int argc, char **argv)
 
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
+    fileTable = new FileTable(MAX_OPEN_FILES);
 #endif
 
 #ifdef FILESYS_NEEDED
@@ -254,6 +261,7 @@ Cleanup()
 
 #ifdef FILESYS
     delete synchDisk;
+    delete fileTable;
 #endif
 
     delete timer;

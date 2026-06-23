@@ -59,6 +59,8 @@ extern FileSystem *fileSystem;
 #ifdef FILESYS
 #include "filesys/synch_disk.hh"
 extern SynchDisk *synchDisk;
+#include "filesys/file_table.hh"
+extern FileTable *fileTable;
 #endif
 
 #endif

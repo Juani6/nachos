@@ -28,7 +28,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
-
+#include <string.h>
 
 /// Initialize a fresh file header for a newly created file.  Allocate data
 /// blocks for the file out of the map of free disk blocks.  Return false if

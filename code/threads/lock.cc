@@ -28,6 +28,7 @@
 
 Lock::Lock(const char *debugName)
 {
+    DEBUG('s', "Creando %s\n", debugName);
     name = debugName;
     sem = new Semaphore("semLock",1);
     holderThread = NULL;

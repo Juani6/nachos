@@ -33,7 +33,6 @@
 /// reading it from disk.
 class FileHeader {
 public:
-
     /// Initialize a file header, including allocating space on disk for the
     /// file data.
     bool Allocate(Bitmap *bitMap, unsigned fileSize);

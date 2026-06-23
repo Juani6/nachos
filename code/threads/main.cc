@@ -87,6 +87,7 @@ void Print(const char *file);
 void PerformanceTest(void);
 void StartProcess(const char *file);
 void ConsoleTest(const char *in, const char *out);
+void RunFileSystemConcurrencyTests();
 
 static inline void
 PrintVersion()
@@ -180,6 +181,11 @@ main(int argc, char **argv)
         } else if (!strcmp(*argv, "-tf")) {  // Performance test.
             PerformanceTest();
         }
+        else if (!strcmp(*argv, "-tfc"))
+        {
+            RunFileSystemConcurrencyTests();
+        }
+        
 #endif
     }
 
