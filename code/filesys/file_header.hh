@@ -62,7 +62,9 @@ public:
     /// system at a low level.
     const RawFileHeader *GetRaw() const;
 
+    unsigned GetIndirectionSector(unsigned logicalBlock);
 private:
+
     RawFileHeader raw;
 };
 

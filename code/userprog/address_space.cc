@@ -173,6 +173,7 @@ AddressSpace::LoadPage(unsigned vpn) {
     #else
     mMapLock->Acquire();
     int pfn = memoryMap->Find();
+    DEBUG('A', "pfn = %d\n",pfn);
     ASSERT(pfn != -1);
     pageTable[vpn].physicalPage = (unsigned) pfn;
     mMapLock->Release();
@@ -403,10 +404,9 @@ AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
         }
         #endif
             physAddr = pageTable[vpn].physicalPage * PAGE_SIZE + offset;
-        
-        DEBUG('A', "Accediendo %u %u\n",vpn, offset);
+        DEBUG('A', "Accediendo %u %u fpn: %u\n",vpn, offset,physAddr);
 
-        DEBUG('A', "ReadBlock: bytesRe|ad=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
+        DEBUG('A', "ReadBlock: bytesRead=%u sizeToRead=%u size=%u\n", bytesRead, sizeToRead, size);
         if (data == CODE) {
             pageTable[vpn].readOnly = true;
             #ifdef SWAP
@@ -418,8 +418,8 @@ AddressSpace::ExeRead(uint32_t virtualAddr, uint32_t size,exeRead data) {
             exe->ReadDataBlock(&mainMemory[physAddr], sizeToRead,bytesRead);
             #ifdef SWAP
             shadowTable[vpn].readOnly = false;
-            #endif 
             shadowTable[vpn].readOnly = false; 
+            #endif 
         }
         bytesRead += sizeToRead;
         #ifdef SWAP

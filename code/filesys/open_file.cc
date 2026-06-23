@@ -327,7 +327,7 @@ OpenFile::ReadAt(char *into, unsigned numBytes, unsigned position)
             synchDisk->ReadSector(hdr->ByteToSector(i * SECTOR_SIZE),
             &buf[(i - firstSector) * SECTOR_SIZE]);
         }
-        
+        DEBUG('f'," ReadAt into: %p, numBytes: %u, position: %u\n", (void*)into, numBytes, position);
         // Copy the part we want.
         memcpy(into, &buf[position - firstSector * SECTOR_SIZE], numBytes);
         delete [] buf;
@@ -346,7 +346,6 @@ OpenFile::WriteAt(const char *from, unsigned numBytes, unsigned position)
     char *buf;
     
     if (position >= fileLength) {
-        tableEntry->iNodeLock->Release();
         return 0;  // Check request.
     }
     if (position + numBytes > fileLength) {

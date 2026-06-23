@@ -211,7 +211,7 @@ Initialize(int argc, char **argv)
     char staticnNameMain[] = "main";
     char *nameMain = strdup(staticnNameMain);
     currentThread = new Thread(nameMain,0);
-    free(nameMain);
+    //free(nameMain);
     #else
     currentThread = new Thread("main",0);
     #endif
@@ -277,7 +277,7 @@ Cleanup()
     if (t->space != nullptr) {
         delete t->space;
         t->space = nullptr;
-        //free((char*)t->GetName());
+        free((char*)t->GetName());
     }
 
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
