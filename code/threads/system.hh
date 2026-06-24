@@ -36,31 +36,38 @@ extern Timer *timer;                 ///< The hardware alarm clock.
 
 #ifdef USER_PROGRAM
 #include "lib/bitmap.hh"
-#ifdef SWAP
-#include "userprog/coremap.hh"
-extern CoreMap * coreMap;
-#else
-extern Bitmap* memoryMap; // Reemplazo del (1:1) entre paginas
-#endif
-extern Lock* mMapLock; 
-#include "machine/machine.hh"
-extern Machine *machine;  // User program memory and registers.
-#include "userprog/synchconsole.hh"
-extern SynchConsole *synchConsole;
-extern Lock* pTLock;
-extern Table<Thread*> *processTable;
+
+	#ifdef SWAP
+		#include "userprog/coremap.hh"
+		extern CoreMap * coreMap;
+	#else
+		extern Bitmap* memoryMap; // Reemplazo del (1:1) entre paginas
+	#endif
+
+	extern Lock* mMapLock; 
+	
+	#include "machine/machine.hh"
+	extern Machine *machine;  // User program memory and registers.
+	
+	#include "userprog/synchconsole.hh"
+	extern SynchConsole *synchConsole;
+	extern Lock* pTLock;
+	extern Table<Thread*> *processTable;
 #endif
 
 #ifdef FILESYS_NEEDED  // *FILESYS* or *FILESYS_STUB*.
-#include "filesys/file_system.hh"
-extern FileSystem *fileSystem;
+	#include "filesys/file_system.hh"
+	extern FileSystem *fileSystem;
 #endif
 
 #ifdef FILESYS
-#include "filesys/synch_disk.hh"
-extern SynchDisk *synchDisk;
-#include "filesys/file_table.hh"
-extern FileTable *fileTable;
+	#include "filesys/synch_disk.hh"
+	extern SynchDisk *synchDisk;
+	#include "filesys/file_table.hh"
+	extern FileTable *fileTable;
+	// Si quisieramos implementar multithreading
+	// basta con ponerlo en cada user space
+	extern int currentDirSector;
 #endif
 
 #endif

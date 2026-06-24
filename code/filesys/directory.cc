@@ -29,6 +29,21 @@
 #include <stdio.h>
 #include <string.h>
 
+// Esto lo que dice es que si hay algo que no se reconoce
+// lo asuma como parte de la libreria estandar
+using namespace std;
+#include <vector>
+
+vector<char*> parse(char* buff,char* div) {
+    vector<char*> tokensArr;
+    char* token = strtok(buff,div);
+    while (token != nullptr) {
+        tokensArr.push_back(token);
+        token = strtok(nullptr,div);
+    }
+    return tokensArr;
+}
+
 
 /// Initialize a directory; initially, the directory is completely empty.  If
 /// the disk is being formatted, an empty directory is all we need, but
@@ -218,4 +233,54 @@ const RawDirectory *
 Directory::GetRaw() const
 {
     return &raw;
+}
+
+pair<int,char*>
+Directory::ResolvePath(char* path) {
+    
+    int dirSector = currentDirSector;
+    if (path[0] == '/') {
+        dirSector = DIRECTORY_SECTOR;
+    }
+    
+    char div[] = "/";
+    vector<char*> tokensArr = parse(path, div);
+    
+    if (tokensArr.empty()) {
+        return {-1,nullptr};
+    }
+    
+    for (size_t i = 0; i < tokensArr.size() - 1; i++) {
+        Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
+        OpenFile* dirFile = new OpenFile(dirSector);
+        dir->FetchFrom(dirFile);
+        DirectoryEntry* entry = dir->FindEntry(tokensArr[i]);
+
+        if (entry == nullptr || !entry->isDirectory) {
+            DEBUG('f', "Error en el path");
+            delete dirFile;
+            delete dir;
+            return {-1,nullptr};
+        }
+
+        dirSector = entry->sector;
+        delete dir;
+        delete dirFile;
+
+        if (dirSector == -1) {
+            return {-1,nullptr};
+        }
+    }
+    char* name = tokensArr.back();
+    return {dirSector,name};
+}
+
+DirectoryEntry*
+Directory::FindEntry(char* name) {
+    for (unsigned i = 0; i < raw.tableSize; i++) {
+        if (raw.table[i].inUse && !strcmp(raw.table[i].name, name)) {
+            return &raw.table[i];
+        }
+    }
+    return nullptr;
 }

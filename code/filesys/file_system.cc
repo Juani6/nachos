@@ -51,13 +51,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
-/// Sectors containing the file headers for the bitmap of free sectors, and
-/// the directory of files.  These file headers are placed in well-known
-/// sectors, so that they can be located on boot-up.
-static const unsigned FREE_MAP_SECTOR = 0;
-static const unsigned DIRECTORY_SECTOR = 1;
-
 /// Initialize the file system.  If `format == true`, the disk has nothing on
 /// it, and we need to initialize the disk to contain an empty directory, and
 /// a bitmap of free sectors (with almost but not all of the sectors marked
@@ -239,7 +232,7 @@ FileSystem::Open(const char *name)
     DEBUG('f', "Opening file %s\n", name);
     dir->FetchFrom(directoryFile);
     int sector = dir->Find(name);
-    ASSERT(sector != -1);
+    //ASSERT(sector != -1);
     delete dir;
     
     fsLock->Release();
