@@ -18,6 +18,7 @@
 ///
 /// Used by the stubs to tell the kernel which system call is being asked
 /// for.
+#define SC_ERROR   -1
 
 #define SC_HALT     0
 #define SC_EXIT     1
@@ -31,10 +32,11 @@
 #define SC_CLOSE   13
 #define SC_READ    14
 #define SC_WRITE   15
-#define SC_EXEC2   16
-#define SC_GETPT   17
+#define SC_GETPT   16
+#define SC_CD 		 17
+#define SC_LS 		 18
+#define SC_MKDIR	 19
 
-#define SC_ERROR   -1
 #ifndef IN_ASM
 
 
@@ -136,6 +138,12 @@ int Close(OpenFileId id);
 // returns -1 on error and 0 on success
 int getPT(char *buffer);
 
+// The cd utility shall change the current directory
+int CD(const char* path);
+
+void LS(void);
+
+int MKDIR(const char* path);
 #endif
 
 

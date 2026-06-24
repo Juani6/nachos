@@ -410,6 +410,56 @@ static void syscall_SC_GETPT() {
     machine->WriteRegister(2,pf);
 }
 
+static void syscall_SC_CD() {
+    int pathAddrs = machine->ReadRegister(4);
+    if (pathAddrs == 0) {
+        DEBUG('e', "Error: address to path string is null\n");
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
+
+    char path[PATH_MAX];
+    if (!ReadStringFromUser(pathAddrs,
+                                    path, sizeof path)) {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2,SC_ERROR);
+            return;
+        }
+        
+    int result = fileSystem->ChangeDir(path);
+    machine->WriteRegister(2,result);
+    return;
+}
+
+static void syscall_SC_LS() {
+    fileSystem->List();
+    return;
+}
+
+
+static void syscall_SC_MKDIR() {
+    int pathAddrs = machine->ReadRegister(4);
+    if (pathAddrs == 0) {
+        DEBUG('e', "Error: address to path string is null\n");
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
+
+    char path[PATH_MAX];
+    if (!ReadStringFromUser(pathAddrs,
+                                    path, sizeof path)) {
+            DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+                      FILE_NAME_MAX_LEN);
+            machine->WriteRegister(2,SC_ERROR);
+            return;
+        }
+    DEBUG('e', "Creando %s", path);
+    int result = fileSystem->CreateDir(path);
+    machine->WriteRegister(2,result);
+    return;
+}
+
 static void
 SyscallHandler(ExceptionType _et)
 {
@@ -459,6 +509,18 @@ SyscallHandler(ExceptionType _et)
         }
         case SC_GETPT: {
             syscall_SC_GETPT();
+            break;
+        }
+        case SC_CD: {
+            syscall_SC_CD();
+            break;
+        }
+        case SC_LS: {
+            syscall_SC_LS();
+            break;
+        }
+        case SC_MKDIR: {
+            syscall_SC_MKDIR();
             break;
         }
         default:

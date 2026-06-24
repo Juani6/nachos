@@ -244,7 +244,11 @@ FileHeader::Extend(unsigned newSize) {
     unsigned diffSector = newNumSector - oldNumSectors; // Cantidad de sectores a allocar 
     raw.numSectors = newNumSector;
     //DEBUG('f', "nNS = % u, oNS = %u, dS = %u", newNumSector, oldNumSectors, diffSector);
-    
+    if (newNumSector <= oldNumSectors) {
+        raw.numBytes = newSize;
+        delete freeMap;
+        return true;
+    }
     if (freeMap->CountClear() < diffSector) {
         return false;  // Not enough space.
     }

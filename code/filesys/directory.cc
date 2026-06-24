@@ -29,22 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Esto lo que dice es que si hay algo que no se reconoce
-// lo asuma como parte de la libreria estandar
-using namespace std;
-#include <vector>
-
-vector<char*> parse(char* buff,char* div) {
-    vector<char*> tokensArr;
-    char* token = strtok(buff,div);
-    while (token != nullptr) {
-        tokensArr.push_back(token);
-        token = strtok(nullptr,div);
-    }
-    return tokensArr;
-}
-
-
 /// Initialize a directory; initially, the directory is completely empty.  If
 /// the disk is being formatted, an empty directory is all we need, but
 /// otherwise, we need to call FetchFrom in order to initialize it from disk.
@@ -55,6 +39,8 @@ Directory::Directory(unsigned size)
     ASSERT(size > 0);
     raw.table = new DirectoryEntry [size];
     raw.tableSize = size;
+    /// Esto es para que valgrind no tire alertas
+    memset(raw.table, 0, sizeof(DirectoryEntry) * raw.tableSize);
     for (unsigned i = 0; i < raw.tableSize; i++) {
         raw.table[i].inUse = false;
     }
@@ -140,10 +126,10 @@ Directory::Find(const char *name)
 /// * `name` is the name of the file being added.
 /// * `newSector` is the disk sector containing the added file's header.
 bool
-Directory::Add(const char *name, int newSector)
+Directory::Add(const char *name, int newSector, bool _isDir)
 {
     ASSERT(name != nullptr);
-
+    
     if (FindIndex(name) != -1) {
         return false;
     }
@@ -153,7 +139,7 @@ Directory::Add(const char *name, int newSector)
             raw.table[i].inUse = true;
             strncpy(raw.table[i].name, name, FILE_NAME_MAX_LEN);
             raw.table[i].sector = newSector;
-            WriteBack(fileSystem->GetDirFile());
+            raw.table[i].isDirectory = _isDir;
             return true;
         }
     }
@@ -172,9 +158,8 @@ Directory::Add(const char *name, int newSector)
     raw.table[i].inUse = true;
     strncpy(raw.table[i].name, name, FILE_NAME_MAX_LEN);
     raw.table[i].sector = newSector;
-    
+    raw.table[i].isDirectory = _isDir;    
     DEBUG('f', "tabla : %u, %u\n",raw.tableSize, i);
-    WriteBack(fileSystem->GetDirFile());
 
     return true;  // no space.  Fix when we have extensible files.
 }
@@ -202,7 +187,12 @@ Directory::List() const
 {
     for (unsigned i = 0; i < raw.tableSize; i++) {
         if (raw.table[i].inUse) {
-            printf("%s\n", raw.table[i].name);
+            if (raw.table[i].isDirectory) {
+                printf("./%s\n", raw.table[i].name);
+            }
+            else {
+                printf("%s\n", raw.table[i].name);
+            }
         }
     }
 }
@@ -235,45 +225,7 @@ Directory::GetRaw() const
     return &raw;
 }
 
-pair<int,char*>
-Directory::ResolvePath(char* path) {
-    
-    int dirSector = currentDirSector;
-    if (path[0] == '/') {
-        dirSector = DIRECTORY_SECTOR;
-    }
-    
-    char div[] = "/";
-    vector<char*> tokensArr = parse(path, div);
-    
-    if (tokensArr.empty()) {
-        return {-1,nullptr};
-    }
-    
-    for (size_t i = 0; i < tokensArr.size() - 1; i++) {
-        Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
-        OpenFile* dirFile = new OpenFile(dirSector);
-        dir->FetchFrom(dirFile);
-        DirectoryEntry* entry = dir->FindEntry(tokensArr[i]);
 
-        if (entry == nullptr || !entry->isDirectory) {
-            DEBUG('f', "Error en el path");
-            delete dirFile;
-            delete dir;
-            return {-1,nullptr};
-        }
-
-        dirSector = entry->sector;
-        delete dir;
-        delete dirFile;
-
-        if (dirSector == -1) {
-            return {-1,nullptr};
-        }
-    }
-    char* name = tokensArr.back();
-    return {dirSector,name};
-}
 
 DirectoryEntry*
 Directory::FindEntry(char* name) {

@@ -170,6 +170,61 @@ FileRead()
 }
 
 void
+TestHierarchy()
+{
+    printf("Starting hierarchy test:\n");
+
+    // 1. crear directorio
+    printf("Creating subdir...\n");
+    ASSERT(fileSystem->CreateDir("subdir"));
+
+    // 2. crear archivo en subdir
+    printf("Creating subdir/file.txt...\n");
+    ASSERT(fileSystem->Create("subdir/file.txt", 0));
+
+    // 3. abrir y escribir
+    OpenFile *f = fileSystem->Open("subdir/file.txt");
+    ASSERT(f != nullptr);
+    const char *msg = "hola mundo";
+    int written = f->Write(msg, strlen(msg));
+    ASSERT(written == (int) strlen(msg));
+
+    // 4. leer y verificar
+    char buf[32];
+    memset(buf, 0, sizeof(buf));
+    f->Seek(0);
+    f->Read(buf, strlen(msg));
+    ASSERT(strncmp(buf, msg, strlen(msg)) == 0);
+    delete f;
+    printf("Write/read OK\n");
+
+    // 5. cd al subdir
+    ASSERT(fileSystem->ChangeDir("subdir") == 0);
+    printf("ls de subdir:\n");
+    fileSystem->List();
+
+    // 6. subdir anidado — paths relativos desde subdir
+    printf("Creating nested...\n");
+    ASSERT(fileSystem->CreateDir("nested"));
+    ASSERT(fileSystem->Create("nested/deep.txt", 0));
+
+    OpenFile *f2 = fileSystem->Open("nested/deep.txt");
+    ASSERT(f2 != nullptr);
+    f2->Write("profundo", 8);
+    delete f2;
+
+    // 7. volver al root
+    ASSERT(fileSystem->ChangeDir("/") == 0);
+    printf("ls del root:\n");
+    fileSystem->List();
+
+    // 8. remove
+    ASSERT(fileSystem->Remove("subdir/file.txt"));
+    ASSERT(fileSystem->Remove("subdir/nested/deep.txt"));
+
+    printf("TestHierarchy passed!\n");
+}
+void
 PerformanceTest()
 {
     printf("Starting file system performance test:\n");
@@ -180,5 +235,11 @@ PerformanceTest()
         printf("Perf test: unable to remove %s\n", FILE_NAME);
         return;
     }
+    stats->Print();
+}
+
+void HierarchyTest() {
+    printf("Testeando jerarquias y directorios:\n");
+    TestHierarchy();
     stats->Print();
 }

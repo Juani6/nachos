@@ -44,7 +44,7 @@ FileTable::Acquire(int sectorInodo) {
 		return &arr[idx];
 	}
 
-	for (unsigned k = 0; k < size; k++) {
+	for (unsigned k = 2; k < size; k++) {
 		if (!arr[k].inUse) {
 			arr[k].inodeSector	 = sectorInodo;
 			arr[k].count         = 1;
@@ -72,6 +72,7 @@ FileTable::Release(FileTableEntry* entry) {
 		isOpen = entry->deletePending;
 
 		delete entry->iNodeLock;
+		entry->iNodeLock = nullptr;
 		entry->inodeSector = -1;
 		entry->inUse = false;
 		entry->deletePending = false;

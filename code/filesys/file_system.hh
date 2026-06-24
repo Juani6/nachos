@@ -94,6 +94,7 @@ public:
 
 #include "directory_entry.hh"
 #include "machine/disk.hh"
+#include <utility>
 
 
 /// Sectors containing the file headers for the bitmap of free sectors, and
@@ -149,6 +150,12 @@ public:
     OpenFile* GetFreeMapFile();
 
     OpenFile* GetDirFile();
+    
+    std::pair<int,char*> ResolvePath(char* path);
+
+    int ChangeDir(char* path);
+
+    bool CreateDir(const char *name);
 private:
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.

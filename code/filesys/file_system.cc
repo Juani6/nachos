@@ -50,7 +50,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
+using namespace std;
 /// Initialize the file system.  If `format == true`, the disk has nothing on
 /// it, and we need to initialize the disk to contain an empty directory, and
 /// a bitmap of free sectors (with almost but not all of the sectors marked
@@ -132,12 +134,7 @@ FileSystem::FileSystem(bool format)
 
 FileSystem::~FileSystem()
 {
-    /* FileTableEntry* freeMapFileEntry = fileTable->Acquire(FREE_MAP_SECTOR);
-    FileTableEntry* DirectoryEntry = fileTable->Acquire(DIRECTORY_SECTOR); 
-    
-    fileTable->Release(freeMapFileEntry);
-    fileTable->Release(DirectoryEntry);
-     */
+    // De estos dos ahora se encarga la fileTable
     delete freeMapFile;
     delete directoryFile;
     delete fsLock;
@@ -169,16 +166,24 @@ FileSystem::~FileSystem()
 /// * `name` is the name of file to be created.
 /// * `initialSize` is the size of file to be created.
 bool
-FileSystem::Create(const char *name, unsigned initialSize)
+FileSystem::Create(const char *_name, unsigned initialSize)
 {
-    ASSERT(name != nullptr);
+    ASSERT(_name != nullptr);
     ASSERT(initialSize < MAX_FILE_SIZE);
 
     fsLock->Acquire();
-    DEBUG('f', "Creating file %s, size %u\n", name, initialSize);
+    DEBUG('f', "Creating file %s, size %u\n", _name, initialSize);
+
+    char* nameCopy = strdup(_name);
+    
+    pair <int,char*> res = ResolvePath(nameCopy);
+    int dirSector = res.first;
+    char* name = res.second;
+
+    OpenFile* dirFile = new OpenFile(dirSector);
 
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
-    dir->FetchFrom(directoryFile);
+    dir->FetchFrom(dirFile);
 
     bool success;
 
@@ -200,7 +205,7 @@ FileSystem::Create(const char *name, unsigned initialSize)
             if (success) {
                 // Everything worked, flush all changes back to disk.
                 h->WriteBack(sector);
-                dir->WriteBack(directoryFile);
+                dir->WriteBack(dirFile);
                 freeMap->WriteBack(freeMapFile);
             }
             delete h;
@@ -208,6 +213,10 @@ FileSystem::Create(const char *name, unsigned initialSize)
         delete freeMap;
     }
     delete dir;
+    delete dirFile;
+    free(nameCopy);
+    free(name);
+
     fsLock->Release();
     return success;
 }
@@ -220,33 +229,42 @@ FileSystem::Create(const char *name, unsigned initialSize)
 ///
 /// * `name` is the text name of the file to be opened.
 OpenFile *
-FileSystem::Open(const char *name)
+FileSystem::Open(const char *_name)
 {
-    ASSERT(name != nullptr);
+    ASSERT(_name != nullptr);
     
     fsLock->Acquire();
-    
+    char *nameCopy = strdup(_name);
+    pair<int,char*> res = ResolvePath(nameCopy);
+    int dirSector = res.first;
+    char* name = res.second;
+
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
     OpenFile  *openFile = nullptr;
-
+    OpenFile* dirFile = new OpenFile(dirSector);
+    
     DEBUG('f', "Opening file %s\n", name);
-    dir->FetchFrom(directoryFile);
+    dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
     //ASSERT(sector != -1);
     delete dir;
+    delete dirFile;
+    free(name);
+    free(nameCopy);
     
-    fsLock->Release();
     
     if (sector >= 0) {
         FileTableEntry* tableEntry = fileTable->Acquire(sector);
         if (!tableEntry) {
             DEBUG('f', "tableEntry llena");
+            fsLock->Release();
             return nullptr;
         }
         else {
             openFile = new OpenFile(sector,tableEntry);  // `name` was found in directory.
         }
     }
+    fsLock->Release();
     return openFile;  // Return null if not found.
 }
 
@@ -263,14 +281,21 @@ FileSystem::Open(const char *name)
 ///
 /// * `name` is the text name of the file to be removed.
 bool
-FileSystem::Remove(const char *name)
+FileSystem::Remove(const char *_name)
 {
-    ASSERT(name != nullptr);
+    ASSERT(_name != nullptr);
 
     fsLock->Acquire();
 
+
+    char *nameCopy = strdup(_name);
+    pair<int,char*> res = ResolvePath(nameCopy);
+    int dirSector = res.first;
+    char* name = res.second;
+    OpenFile* dirFile = new OpenFile(dirSector);
+
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
-    dir->FetchFrom(directoryFile);
+    dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
     if (sector == -1) {
        delete dir;
@@ -279,9 +304,11 @@ FileSystem::Remove(const char *name)
     // Inicialmente borramos el directorio y despues
     // se vera quien elimina los datos del disco
     dir->Remove(name);
-    dir->WriteBack(directoryFile);    // Flush to disk.
+    dir->WriteBack(dirFile);    // Flush to disk.
     delete dir;
-
+    delete dirFile;
+    free(name);
+    free(nameCopy);
     if (fileTable->MarkAsDeleted(sector)) {
         DeletePhysicalSector(sector);
     }
@@ -312,9 +339,11 @@ void
 FileSystem::List()
 {
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
-
-    dir->FetchFrom(directoryFile);
+    OpenFile* dirFile = new OpenFile(currentDirSector);
+    dir->FetchFrom(dirFile);
+    DEBUG('e', "Listando archivos del sector %d",currentDirSector);
     dir->List();
+    delete dirFile;
     delete dir;
 }
 
@@ -539,4 +568,200 @@ FileSystem::GetFreeMapFile() {
 OpenFile*
 FileSystem::GetDirFile() {
     return directoryFile;
+}
+
+// Esto lo que dice es que si hay algo que no se reconoce
+// lo asuma como parte de la libreria estandar
+using namespace std;
+#include <vector>
+#include <stdlib.h>
+vector<char*> parse(char* _buff,char* div) {
+    char *buff = strdup(_buff);
+    vector<char*> tokensArr;
+    char* token = strtok(buff,div);
+    while (token != nullptr) {
+        tokensArr.push_back(strdup(token));
+        token = strtok(nullptr,div);
+    }
+    free(buff);
+    return tokensArr;
+}
+
+pair<int,char*>
+FileSystem::ResolvePath(char* path) {
+    
+    int dirSector = currentDirSector;
+    if (path[0] == '/') {
+        dirSector = DIRECTORY_SECTOR;
+    }
+    
+    char div[] = "/";
+    vector<char*> tokensArr = parse(path, div);
+    
+    if (tokensArr.empty()) {
+        return {-1,nullptr};
+    }
+    
+    for (size_t i = 0; i < tokensArr.size() - 1; i++) {
+        Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
+        OpenFile* dirFile = new OpenFile(dirSector);
+        dir->FetchFrom(dirFile);
+        DirectoryEntry* entry = dir->FindEntry(tokensArr[i]);
+
+        if (entry == nullptr || !entry->isDirectory) {
+            DEBUG('f', "Error en el path");
+            delete dirFile;
+            delete dir;
+            for (char* token : tokensArr) {
+                free(token);
+            }
+            return {-1,nullptr};
+        }
+
+        dirSector = entry->sector;
+        delete dir;
+        delete dirFile;
+
+        if (dirSector == -1) {
+            return {-1,nullptr};
+        }
+    }
+    
+    char* name = strdup(tokensArr.back());
+    
+    for (char* token : tokensArr) {
+        free(token);
+    }
+    DEBUG('f', "dirSector : %u name: %s", dirSector,name);
+    return {dirSector,name};
+}
+
+int
+FileSystem::ChangeDir(char* path) {
+
+    if (strcmp(path, "/") == 0) {
+        currentDirSector = DIRECTORY_SECTOR;
+        return 0;
+    }
+
+    std::pair<int,char*> result = ResolvePath(path);
+    int dirSector = result.first;
+    char* name = result.second;
+
+    if (name == nullptr || strlen(name) == 0) {
+        currentDirSector = dirSector;
+        free(name);
+        return 0;
+    }
+
+    Directory *dir = new Directory(1);
+    OpenFile* dirFile = new OpenFile(dirSector);
+    dir->FetchFrom(dirFile);
+    int sector = dir->Find(name);
+
+
+    int oldSector = currentDirSector;
+    DEBUG('e',"Cambiando del sector %d a %d\n", oldSector, sector);
+
+    if (sector == -1){
+        DEBUG('f', "Error en el path\n");
+        delete dir;
+        delete dirFile;
+        free(name);
+        return -1;
+    }
+
+    DirectoryEntry* entry = dir->FindEntry(name);
+
+    if (!entry->isDirectory) {
+        DEBUG('f', "No es un directorio\n");
+        delete dir;
+        delete dirFile;
+        free(name);
+        return -1;
+    }
+    currentDirSector = sector;
+    delete dir;
+    delete dirFile;
+    free(name);
+    return 0;
+}
+
+bool
+FileSystem::CreateDir(const char* _name) {
+    ASSERT(_name != nullptr);
+    
+    fsLock->Acquire();
+    DEBUG('f', "Creating dir %s\n", _name);
+
+    char* nameCopy = strdup(_name);
+    
+    pair <int,char*> res = ResolvePath(nameCopy);
+    int fatherDirSector = res.first;
+    char* name = res.second;
+
+    OpenFile* fatherDirFile = new OpenFile(fatherDirSector);
+
+    Directory *fatherDir = new Directory(1);
+    fatherDir->FetchFrom(fatherDirFile);
+    
+    bool success;
+    if (fatherDir->Find(name) != -1) {
+        success = false;
+    }
+    else {
+        Bitmap *freeMap = new Bitmap(NUM_SECTORS);
+        freeMap->FetchFrom(freeMapFile);
+        int newDirSector = freeMap->Find();
+
+        if (newDirSector == -1) {
+            success = false;
+        }
+
+        else if (!fatherDir->Add(name,newDirSector,true)) {
+            success = false;
+        }
+
+        else {
+            DEBUG('e',"Sectores libres: %d\n", freeMap->CountClear());
+            DEBUG('e',"newDirSector: %d\n", newDirSector);
+            FileHeader *h = new FileHeader;
+            success = h->Allocate(freeMap, sizeof(DirectoryEntry) * NUM_DIR_ENTRIES);
+            
+            if (debug.IsEnabled('e')) {
+                DEBUG('e',"numSectors=%d numBytes=%d\n", h->GetRaw()->numSectors, h->GetRaw()->numBytes);
+                for (unsigned i = 0; i < h->GetRaw()->numSectors; i++) {
+                    DEBUG('e',"dataSectors[%d] = %d\n", i, h->GetRaw()->dataSectors[i]);
+                }
+            }
+            
+            if (success) {
+                DEBUG('e', "Entre a success\n");
+                freeMap->WriteBack(freeMapFile);
+                h->WriteBack(newDirSector);
+                
+                Directory* newDir = new Directory(NUM_DIR_ENTRIES);
+                OpenFile* newDirFile = new OpenFile(newDirSector);
+                
+                DEBUG('f',"CreateDir: '%s' guardado en sector=%d del padre=%d\n", name, newDirSector, fatherDirSector);
+                
+                newDir->WriteBack(newDirFile);
+                fatherDir->WriteBack(fatherDirFile);
+                
+                DEBUG('e', "Write backs finalizados\n");
+                delete newDir;
+                delete newDirFile;
+            }
+            delete h;
+        }
+        delete freeMap;
+    }
+
+    
+    delete fatherDir;
+    delete fatherDirFile;
+    free(name);
+    free(nameCopy);
+    fsLock->Release();
+    return success;
 }

@@ -205,8 +205,9 @@ OpenFile::ReadAt(char *into, unsigned numBytes, unsigned position)
 
 OpenFile::OpenFile(int sector,FileTableEntry* entry)
 {
-    ASSERT(entry);
-    ASSERT(entry->iNodeLock);
+    // Estos chequeos los pasamos a donde se use la table entry
+    //ASSERT(entry);
+    //ASSERT(entry->iNodeLock);
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     hdrSector = sector;
@@ -218,7 +219,7 @@ OpenFile::OpenFile(int sector,FileTableEntry* entry)
 OpenFile::~OpenFile()
 {
     delete hdr;
-    if (!tableEntry && fileTable->Release(tableEntry)) {
+    if (tableEntry && fileTable->Release(tableEntry)) {
         fileSystem->fsLock->Acquire();
         fileSystem->DeletePhysicalSector(tableEntry->inodeSector);
         fileSystem->fsLock->Release();
@@ -252,11 +253,15 @@ OpenFile::Read(char *into, unsigned numBytes)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
-    tableEntry->iNodeLock->Acquire();
+    if (tableEntry) {
+        tableEntry->iNodeLock->Acquire();
+    }
     int result = ReadAt(into, numBytes, seekPosition);
     seekPosition += result;
 
-    tableEntry->iNodeLock->Release();
+    if (tableEntry) {
+        tableEntry->iNodeLock->Release();
+    }
     return result;
 }
 
@@ -265,14 +270,14 @@ OpenFile::Write(const char *into, unsigned numBytes)
 {
     ASSERT(into != nullptr);
     ASSERT(numBytes > 0);
-    ASSERT(tableEntry != nullptr);
-    ASSERT(tableEntry->iNodeLock != nullptr);
-
-    tableEntry->iNodeLock->Acquire();
-
+    if (tableEntry) {
+        tableEntry->iNodeLock->Acquire();
+    }
     int result = WriteAt(into, numBytes, seekPosition);
     seekPosition += result;
-    tableEntry->iNodeLock->Release();
+    if (tableEntry) {
+        tableEntry->iNodeLock->Release();
+    }
     return result;
 }
 
