@@ -221,7 +221,7 @@ OpenFile::~OpenFile()
     delete hdr;
     if (tableEntry && fileTable->Release(tableEntry)) {
         fileSystem->fsLock->Acquire();
-        fileSystem->DeletePhysicalSector(tableEntry->inodeSector);
+        fileSystem->DeletePhysicalSector(hdrSector); // tableEntry->inodeSector
         fileSystem->fsLock->Release();
     }
 }

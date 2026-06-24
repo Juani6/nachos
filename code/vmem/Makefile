@@ -21,13 +21,15 @@ HDR_FILES    = $(THREAD_HDR) $(USERPROG_HDR) $(VMEM_HDR)
 SRC_FILES    = $(THREAD_SRC) $(USERPROG_SRC) $(VMEM_SRC)
 OBJ_FILES    = $(THREAD_OBJ) $(USERPROG_OBJ) $(VMEM_OBJ)
 
-# If filesystem is done first!
-#DEFINES      = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS -DVMEM -DUSE_TLB
-#INCLUDE_DIRS = -I../vm -I../bin -I../filesys -I../userprog -I../threads \
+ #If filesystem is done first!
+# Podemos descomentar esto para probarlo con el filesystem
+#DEFINES      = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS -DVMEM \
+#               -DUSE_TLB -DDEMAND_LOADING -DSWAP -DDFS_TICKS_FIX -DFRPOLICY_CLOCK
+#INCLUDE_DIRS = -I.. -I../bin -I../filesys -I../userprog -I../threads \
 #               -I../machine
-#HFILES       = $(THREAD_HDR) $(USERPROG_HDR) $(FILESYS_HDR) $(VMEM_HDR)
-#CFILES       = $(THREAD_SRC) $(USERPROG_SRC) $(FILESYS_SRC) $(VMEM_SRC)
-#C_OFILES     = $(THREAD_OBJ) $(USERPROG_OBJ) $(FILESYS_OBJ) $(VMEM_OBJ)
+#HDR_FILES   = $(THREAD_HDR) $(USERPROG_HDR) $(FILESYS_HDR) $(VMEM_HDR)
+#SRC_FILES   = $(THREAD_SRC) $(USERPROG_SRC) $(FILESYS_SRC) $(VMEM_SRC)
+#OBJ_FILES   = $(THREAD_OBJ) $(USERPROG_OBJ) $(FILESYS_OBJ) $(VMEM_OBJ)
 
 include ../Makefile.common
 include ../Makefile.env

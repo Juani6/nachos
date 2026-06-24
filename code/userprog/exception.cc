@@ -410,6 +410,7 @@ static void syscall_SC_GETPT() {
     machine->WriteRegister(2,pf);
 }
 
+#ifdef FILESYS
 static void syscall_SC_CD() {
     int pathAddrs = machine->ReadRegister(4);
     if (pathAddrs == 0) {
@@ -445,21 +446,22 @@ static void syscall_SC_MKDIR() {
         machine->WriteRegister(2,SC_ERROR);
         return;
     }
-
+    
     char path[PATH_MAX];
     if (!ReadStringFromUser(pathAddrs,
-                                    path, sizeof path)) {
+        path, sizeof path)) {
             DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                      FILE_NAME_MAX_LEN);
-            machine->WriteRegister(2,SC_ERROR);
+                FILE_NAME_MAX_LEN);
+                machine->WriteRegister(2,SC_ERROR);
+                return;
+            }
+            DEBUG('e', "Creando %s", path);
+            int result = fileSystem->CreateDir(path);
+            machine->WriteRegister(2,result);
             return;
         }
-    DEBUG('e', "Creando %s", path);
-    int result = fileSystem->CreateDir(path);
-    machine->WriteRegister(2,result);
-    return;
-}
-
+#endif
+        
 static void
 SyscallHandler(ExceptionType _et)
 {
@@ -511,6 +513,7 @@ SyscallHandler(ExceptionType _et)
             syscall_SC_GETPT();
             break;
         }
+#ifdef FILESYS
         case SC_CD: {
             syscall_SC_CD();
             break;
@@ -523,6 +526,7 @@ SyscallHandler(ExceptionType _et)
             syscall_SC_MKDIR();
             break;
         }
+#endif
         default:
             fprintf(stderr, "Unexpected system call: id %d.\n", scid);
             ASSERT(false);
