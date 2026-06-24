@@ -239,6 +239,7 @@ FileSystem::Open(const char *name)
     DEBUG('f', "Opening file %s\n", name);
     dir->FetchFrom(directoryFile);
     int sector = dir->Find(name);
+    ASSERT(sector != -1);
     delete dir;
     
     fsLock->Release();
@@ -534,4 +535,15 @@ FileSystem::Print()
     delete dirH;
     delete freeMap;
     delete dir;
+}
+
+OpenFile*
+FileSystem::GetFreeMapFile() {
+    return freeMapFile;
+}
+
+
+OpenFile*
+FileSystem::GetDirFile() {
+    return directoryFile;
 }

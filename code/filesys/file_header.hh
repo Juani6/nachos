@@ -63,6 +63,8 @@ public:
     const RawFileHeader *GetRaw() const;
 
     unsigned GetIndirectionSector(unsigned logicalBlock);
+
+    bool Extend(unsigned newSize);
 private:
 
     RawFileHeader raw;

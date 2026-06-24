@@ -138,6 +138,10 @@ public:
     void DeletePhysicalSector(int sector);
     
     Lock* fsLock;
+
+    OpenFile* GetFreeMapFile();
+
+    OpenFile* GetDirFile();
 private:
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.

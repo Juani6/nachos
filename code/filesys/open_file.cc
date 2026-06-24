@@ -209,6 +209,7 @@ OpenFile::OpenFile(int sector,FileTableEntry* entry)
     ASSERT(entry->iNodeLock);
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
+    hdrSector = sector;
     seekPosition = 0;
     tableEntry = entry;
 }
@@ -268,6 +269,7 @@ OpenFile::Write(const char *into, unsigned numBytes)
     ASSERT(tableEntry->iNodeLock != nullptr);
 
     tableEntry->iNodeLock->Acquire();
+
     int result = WriteAt(into, numBytes, seekPosition);
     seekPosition += result;
     tableEntry->iNodeLock->Release();
@@ -344,13 +346,19 @@ OpenFile::WriteAt(const char *from, unsigned numBytes, unsigned position)
     unsigned firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
+    if (position + numBytes > fileLength) {
+        if (!hdr->Extend(numBytes + position)){
+            DEBUG('f', "FS LLENO\n");
+            return 0;
+        }
+        hdr->WriteBack(hdrSector);
+        fileLength = hdr->FileLength();
+    }
     
     if (position >= fileLength) {
         return 0;  // Check request.
     }
-    if (position + numBytes > fileLength) {
-        numBytes = fileLength - position;
-    }
+
     DEBUG('f', "Writing %u bytes at %u, from file of length %u.\n",
     numBytes, position, fileLength);
     

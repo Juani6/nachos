@@ -24,6 +24,7 @@
 #include "directory_entry.hh"
 #include "file_header.hh"
 #include "lib/utility.hh"
+#include "threads/system.hh"
 
 #include <stdio.h>
 #include <string.h>
@@ -57,6 +58,16 @@ void
 Directory::FetchFrom(OpenFile *file)
 {
     ASSERT(file != nullptr);
+    unsigned fileSize = file->Length();
+    unsigned entriesOnDisk = fileSize / sizeof(DirectoryEntry);
+
+    // Si el archivo creció, expandir la tabla en memoria
+    if (entriesOnDisk > raw.tableSize) {
+        delete[] raw.table;
+        raw.table = new DirectoryEntry[entriesOnDisk]();
+        raw.tableSize = entriesOnDisk;
+    }
+
     file->ReadAt((char *) raw.table,
                  raw.tableSize * sizeof (DirectoryEntry), 0);
 }
@@ -121,16 +132,36 @@ Directory::Add(const char *name, int newSector)
     if (FindIndex(name) != -1) {
         return false;
     }
-
-    for (unsigned i = 0; i < raw.tableSize; i++) {
+    unsigned i = 0;
+    for (; i < raw.tableSize; i++) {
         if (!raw.table[i].inUse) {
             raw.table[i].inUse = true;
             strncpy(raw.table[i].name, name, FILE_NAME_MAX_LEN);
             raw.table[i].sector = newSector;
+            WriteBack(fileSystem->GetDirFile());
             return true;
         }
     }
-    return false;  // no space.  Fix when we have extensible files.
+    unsigned newSize = raw.tableSize*2;
+    DirectoryEntry *newTable = new DirectoryEntry[newSize];
+    memcpy(newTable,raw.table,sizeof(DirectoryEntry)*raw.tableSize);
+    
+    for (unsigned j = i; j < newSize; j++) {
+        newTable[j].inUse = false;
+    }
+
+    delete []raw.table;
+    raw.table = newTable;
+    raw.tableSize = newSize;
+
+    raw.table[i].inUse = true;
+    strncpy(raw.table[i].name, name, FILE_NAME_MAX_LEN);
+    raw.table[i].sector = newSector;
+    
+    DEBUG('f', "tabla : %u, %u\n",raw.tableSize, i);
+    WriteBack(fileSystem->GetDirFile());
+
+    return true;  // no space.  Fix when we have extensible files.
 }
 
 /// Remove a file name from the directory.   Return true if successful;

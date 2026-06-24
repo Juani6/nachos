@@ -58,7 +58,7 @@ Copy(const char *from, const char *to)
         fclose(fp);
         return;
     }
-
+    DEBUG('f', "to : %s\n", to);
     OpenFile *openFile = fileSystem->Open(to);
     ASSERT(openFile != nullptr);
 

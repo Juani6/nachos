@@ -15,7 +15,6 @@ class Lock;
 typedef struct _FileTableEntry
 {
 	int inodeSector;
-
 	// cuenta la cantidad de hilos que tienen acceso al archivo
 	int count; 
 	Lock* iNodeLock;

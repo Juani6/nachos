@@ -47,15 +47,18 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
 
     raw.numBytes = fileSize;
     raw.numSectors = DivRoundUp(fileSize, SECTOR_SIZE);
+    
     if (freeMap->CountClear() < raw.numSectors) {
         return false;  // Not enough space.
     }
+    
     unsigned fstLvl[NUMBER_POINTERS];
     unsigned sndLvl[NUMBER_POINTERS];
+
     if (raw.numSectors > NUM_DIRECT) {
-        raw.sndIndirection = freeMap->Find();
+        raw.indirection = freeMap->Find();
         memset(fstLvl,0,SECTOR_SIZE);
-        synchDisk->WriteSector(raw.sndIndirection, (char*)fstLvl);
+        synchDisk->WriteSector(raw.indirection, (char*)fstLvl);
     }
 
     unsigned logicalBlock;
@@ -69,13 +72,13 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
             unsigned indirectionNumber = logicalBlock / NUMBER_POINTERS;
             unsigned indirectionOffset = logicalBlock % NUMBER_POINTERS;
             //Traemos el primer nivel
-            synchDisk->ReadSector(raw.sndIndirection,(char*)fstLvl);
+            synchDisk->ReadSector(raw.indirection,(char*)fstLvl);
             // Si el nivel que buscamos no existe lo creamos
             if (fstLvl[indirectionNumber] == 0) {
                 fstLvl[indirectionNumber] = freeMap->Find();
                 memset(sndLvl,0,SECTOR_SIZE);
                 synchDisk->WriteSector(fstLvl[indirectionNumber],(char*)sndLvl);
-                synchDisk->WriteSector(raw.sndIndirection, (char*)fstLvl);
+                synchDisk->WriteSector(raw.indirection, (char*)fstLvl);
             }
             // Allocamos el sector final
             synchDisk->ReadSector(fstLvl[indirectionNumber],(char*) sndLvl);
@@ -105,7 +108,7 @@ FileHeader::Deallocate(Bitmap *freeMap)
             unsigned indirectionNumber = logicalBlock / NUMBER_POINTERS;
             unsigned indirectionOffset = logicalBlock % NUMBER_POINTERS;
 
-            synchDisk->ReadSector(raw.sndIndirection, (char*)fstLvl);
+            synchDisk->ReadSector(raw.indirection, (char*)fstLvl);
             synchDisk->ReadSector(fstLvl[indirectionNumber], (char*)sndLvl);
             freeMap->Clear(sndLvl[indirectionOffset]);
 
@@ -119,7 +122,7 @@ FileHeader::Deallocate(Bitmap *freeMap)
 
     // liberar bloque raíz de indirección
     if (raw.numSectors > NUM_DIRECT) {
-        freeMap->Clear(raw.sndIndirection);
+        freeMap->Clear(raw.indirection);
     }
 
 }
@@ -168,10 +171,11 @@ FileHeader::GetIndirectionSector(unsigned logicalBlock) {
     unsigned indirectionOffset = logicalBlock % NUMBER_POINTERS;
 
     unsigned firstLevel[NUMBER_POINTERS]; 
-    synchDisk->ReadSector(raw.sndIndirection,(char*) firstLevel);
-
+    synchDisk->ReadSector(raw.indirection,(char*) firstLevel);
+    ASSERT(firstLevel[indirectionNumber] != 0);
     unsigned secondLevel[NUMBER_POINTERS];
     synchDisk->ReadSector(firstLevel[indirectionNumber], (char*) secondLevel);
+    ASSERT(secondLevel[indirectionOffset] != 0);
     return secondLevel[indirectionOffset];
 
 }
@@ -224,4 +228,65 @@ const RawFileHeader *
 FileHeader::GetRaw() const
 {
     return &raw;
+}
+
+
+bool
+FileHeader::Extend(unsigned newSize) {
+
+    Bitmap* freeMap = new Bitmap(NUM_SECTORS);
+    freeMap->FetchFrom(fileSystem->GetFreeMapFile());
+
+    raw.numBytes = newSize;
+
+    unsigned newNumSector = DivRoundUp(newSize, SECTOR_SIZE);
+    unsigned oldNumSectors = raw.numSectors;
+    unsigned diffSector = newNumSector - oldNumSectors; // Cantidad de sectores a allocar 
+    raw.numSectors = newNumSector;
+    //DEBUG('f', "nNS = % u, oNS = %u, dS = %u", newNumSector, oldNumSectors, diffSector);
+    
+    if (freeMap->CountClear() < diffSector) {
+        return false;  // Not enough space.
+    }
+
+    unsigned fstLvl[NUMBER_POINTERS];
+    unsigned sndLvl[NUMBER_POINTERS];
+
+    if (raw.indirection == 0 && newNumSector > NUM_DIRECT) {
+        raw.indirection = freeMap->Find();
+        memset(fstLvl,0,SECTOR_SIZE);
+        synchDisk->WriteSector(raw.indirection, (char*)fstLvl);
+    }
+
+    unsigned logicalBlock;
+    for (unsigned i = oldNumSectors; i < newNumSector; i++) {
+        if (i < NUM_DIRECT) {
+            raw.dataSectors[i] = freeMap->Find();
+        }
+        else {
+            // Calculamos las direcciones en cada nivel de indireccion
+            logicalBlock = i - NUM_DIRECT;
+            unsigned indirectionNumber = logicalBlock / NUMBER_POINTERS;
+            unsigned indirectionOffset = logicalBlock % NUMBER_POINTERS;
+            //Traemos el primer nivel
+            synchDisk->ReadSector(raw.indirection,(char*)fstLvl);
+            // Si el nivel que buscamos no existe lo creamos
+            if (fstLvl[indirectionNumber] == 0) {
+                fstLvl[indirectionNumber] = freeMap->Find();
+                memset(sndLvl,0,SECTOR_SIZE);
+                synchDisk->WriteSector(fstLvl[indirectionNumber],(char*)sndLvl);
+                synchDisk->WriteSector(raw.indirection, (char*)fstLvl);
+            }
+            // Allocamos el sector final
+            synchDisk->ReadSector(fstLvl[indirectionNumber],(char*) sndLvl);
+            sndLvl[indirectionOffset] = freeMap->Find();
+            synchDisk->WriteSector(fstLvl[indirectionNumber],(char*) sndLvl);
+
+        }
+    }
+    
+    freeMap->WriteBack(fileSystem->GetFreeMapFile());
+
+    delete freeMap;
+    return true;
 }

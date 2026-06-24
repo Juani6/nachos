@@ -120,6 +120,7 @@ public:
     FileHeader *hdr;  ///< Header for this file.
     unsigned seekPosition;  ///< Current position within the file.
     FileTableEntry* tableEntry;
+    int hdrSector;
 };
 
 #endif

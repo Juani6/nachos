@@ -12,6 +12,7 @@
 
 const unsigned NUM_DIRECT = (SECTOR_SIZE - 3 * sizeof (int)) / sizeof (int);
 static const unsigned MAX_DIRECT_SIZE = NUM_DIRECT * SECTOR_SIZE;
+
 // Cantidad de punteros que entran en un sector
 const unsigned NUMBER_POINTERS = SECTOR_SIZE / sizeof(int); 
 static const unsigned INDIRECTION_SIZE = NUMBER_POINTERS * NUMBER_POINTERS * SECTOR_SIZE; 
@@ -22,7 +23,7 @@ struct RawFileHeader {
     unsigned numSectors;  ///< Number of data sectors in the file.
     unsigned dataSectors[NUM_DIRECT];  ///< Disk sector numbers for each data
                                        ///< block in the file.
-    unsigned sndIndirection; // Numero de sector segunda indireccion
+    unsigned indirection; // Numero de sector segunda indireccion
 };
 
 
