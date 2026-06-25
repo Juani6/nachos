@@ -7,10 +7,10 @@ int main(int argc,char* argv[]) {
 		return -1;
 	}
 	char* path = argv[1];
-	int res = MKDIR(path);
-	if (res == -1) {
+
+	if (!MKDIR(path)) {
 		puts2("Error al crear el directorio\n");
-		return res;
+		return -1;
 	}
 	return 0;
 }

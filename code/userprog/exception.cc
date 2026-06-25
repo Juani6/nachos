@@ -103,27 +103,27 @@ static void syscall_SC_HALT() {
 }
 
 static void syscall_SC_CREATE() {
-            int filenameAddr = machine->ReadRegister(4);
-            if (filenameAddr == 0) {
-                DEBUG('e', "Error: address to filename string is null.\n");
-                machine->WriteRegister(2,SC_ERROR);
-                return;
-            }
-
-            char filename[FILE_NAME_MAX_LEN + 1];
-            if (!ReadStringFromUser(filenameAddr,
-                                    filename, sizeof filename)) {
-                DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
-                      FILE_NAME_MAX_LEN);
-            machine->WriteRegister(2,SC_ERROR);
-            return;
-            }
-
-            DEBUG('e', "`Create` requested for file `%s`.\n", filename);
-            if(fileSystem->Create(filename,1000)) 
-                machine->WriteRegister(2,0);
-            else
-                machine->WriteRegister(2,SC_ERROR);
+    int filenameAddr = machine->ReadRegister(4);
+    if (filenameAddr == 0) {
+        DEBUG('e', "Error: address to filename string is null.\n");
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
+    
+    char filename[FILE_NAME_MAX_LEN + 1];
+    if (!ReadStringFromUser(filenameAddr,
+                            filename, sizeof filename)) {
+        DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
+              FILE_NAME_MAX_LEN);
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
+    DEBUG('e', "`Create` requested for file `%s`.\n", filename);
+    if(fileSystem->Create(filename,0)) 
+        machine->WriteRegister(2,0);
+    else
+        machine->WriteRegister(2,SC_ERROR);
+    return;
 }
 
 static void syscall_SC_OPEN() {
@@ -131,6 +131,7 @@ static void syscall_SC_OPEN() {
             int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) { 
                 DEBUG('e', "Error: address to filename string is null.\n");
+                machine->WriteRegister(2,SC_ERROR);
                 return;
             }
             
@@ -202,7 +203,7 @@ static void syscall_SC_REMOVE() {
 }
 
 static void syscall_SC_READ() {
-                int buffAddr = machine->ReadRegister(4);
+            int buffAddr = machine->ReadRegister(4);
             int size = machine->ReadRegister(5);
             OpenFileId fid = machine->ReadRegister(6);
 
@@ -240,6 +241,8 @@ static void syscall_SC_READ() {
             
             if (readBytes > 0) {
                 WriteBufferToUser(auxBuff, buffAddr, readBytes);
+                delete[] auxBuff;
+                machine->WriteRegister(2,SC_ERROR);
                 return;
             } 
                 
@@ -283,6 +286,7 @@ static void syscall_SC_WRITE() {
     writeBytes = f->Write(auxBuff,size);
     delete []auxBuff;
     machine->WriteRegister(2, writeBytes);
+    return;
 }
 
 static void syscall_SC_EXIT() {
@@ -300,14 +304,16 @@ static void syscall_SC_EXIT() {
             alive++;
         }
     }
-    pTLock->Release();
-    stats->Debug();
     
+    stats->Debug();
+    // Liberamos el processTable lock despues del chequeo de alive.
     if (alive > 1) {
+        pTLock->Release();
         currentThread->Finish();
     }
     // Si no hay procesos activos terminamos
     else { 
+        pTLock->Release();
         DEBUG('e', "No more processes in the scheduler. Halting.\n");
         interrupt->Halt();
     }
@@ -319,6 +325,12 @@ static void syscall_SC_EXEC() {
             int argAddr      = machine->ReadRegister(5);
             DEBUG('e',"argAddr:%d\n",argAddr);
             char** argv;
+            if (filenameAddr == 0) {
+                DEBUG('e', "Error: address to filename string is null");
+                machine->WriteRegister(2,SC_ERROR);
+                return;
+            }
+            
             if (argAddr) {
                 argv = SaveArgs(argAddr);
             } 
@@ -326,16 +338,12 @@ static void syscall_SC_EXEC() {
                 argv = nullptr;
             }
             
-            if (filenameAddr == 0) {
-                DEBUG('e', "Error: address to filename string is null");
-                machine->WriteRegister(2,SC_ERROR);
-                return;
-            }
 
             char filename[FILE_NAME_MAX_LEN + 1];
             if (!ReadStringFromUser(filenameAddr, filename, sizeof filename)) {
                 DEBUG('e', "Error: filename string too long (maximum is %u bytes).\n",
                       FILE_NAME_MAX_LEN);
+                machine->WriteRegister(2,SC_ERROR);
                 return;
             }
             
