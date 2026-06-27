@@ -95,7 +95,7 @@ public:
 #include "directory_entry.hh"
 #include "machine/disk.hh"
 #include <utility>
-
+#include "threads/rwlock.hh"
 
 /// Sectors containing the file headers for the bitmap of free sectors, and
 /// the directory of files.  These file headers are placed in well-known
@@ -161,6 +161,9 @@ private:
                             ///< file.
     OpenFile *directoryFile;  ///< “Root” directory -- list of file names,
                               ///< represented as a file.
+    RWLock* dirLocks[NUM_SECTORS];
+    RWLock* GetDirLock(int sector);
+    Lock* lockDirArr;
 };
 
 #endif

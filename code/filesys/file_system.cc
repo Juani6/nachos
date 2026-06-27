@@ -66,6 +66,11 @@ FileSystem::FileSystem(bool format)
 {
     DEBUG('f', "Initializing the file system.\n");
     fsLock = new Lock("fsLock");
+    lockDirArr = new Lock("lockDirArr");
+    for (unsigned i = 0; i < NUM_SECTORS; i++) {
+        dirLocks[i] = nullptr;
+    }
+
     if (format) {
         Bitmap     *freeMap = new Bitmap(NUM_SECTORS);
         Directory  *dir     = new Directory(NUM_DIR_ENTRIES);
@@ -138,6 +143,12 @@ FileSystem::~FileSystem()
     delete freeMapFile;
     delete directoryFile;
     delete fsLock;
+    delete lockDirArr;
+    for (unsigned i = 0; i < NUM_SECTORS; i++) {
+        if (dirLocks[i]) {
+            delete dirLocks[i];
+        }
+    }
 }
 
 /// Create a file in the Nachos file system (similar to UNIX `create`).
@@ -171,18 +182,20 @@ FileSystem::Create(const char *_name, unsigned initialSize)
     ASSERT(_name != nullptr);
     ASSERT(initialSize < MAX_FILE_SIZE);
 
-    fsLock->Acquire();
     DEBUG('f', "Creating file %s, size %u\n", _name, initialSize);
-
+    
     char* nameCopy = strdup(_name);
     
     pair <int,char*> res = ResolvePath(nameCopy);
     int dirSector = res.first;
     char* name = res.second;
-
+    
     OpenFile* dirFile = new OpenFile(dirSector);
-
+    
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
+    
+    GetDirLock(dirSector)->AcquireWrite();
+    
     dir->FetchFrom(dirFile);
 
     bool success;
@@ -190,14 +203,17 @@ FileSystem::Create(const char *_name, unsigned initialSize)
     if (dir->Find(name) != -1) {
         success = false;  // File is already in directory.
     } else {
+        fsLock->Acquire();
         Bitmap *freeMap = new Bitmap(NUM_SECTORS);
         freeMap->FetchFrom(freeMapFile);
         int sector = freeMap->Find();
           // Find a sector to hold the file header.
         if (sector == -1) {
             success = false;  // No free block for file header.
+            fsLock->Release();
         } else if (!dir->Add(name, sector)) {
             success = false;  // No space in directory.
+            fsLock->Release();
         } else {
             FileHeader *h = new FileHeader();
             success = h->Allocate(freeMap, initialSize);
@@ -208,6 +224,7 @@ FileSystem::Create(const char *_name, unsigned initialSize)
                 dir->WriteBack(dirFile);
                 freeMap->WriteBack(freeMapFile);
             }
+            fsLock->Release();
             delete h;
         }
         delete freeMap;
@@ -217,7 +234,7 @@ FileSystem::Create(const char *_name, unsigned initialSize)
     free(nameCopy);
     free(name);
 
-    fsLock->Release();
+    GetDirLock(dirSector)->ReleaseWrite();
     return success;
 }
 
@@ -233,17 +250,17 @@ FileSystem::Open(const char *_name)
 {
     ASSERT(_name != nullptr);
     
-    fsLock->Acquire();
     char *nameCopy = strdup(_name);
     pair<int,char*> res = ResolvePath(nameCopy);
     int dirSector = res.first;
     char* name = res.second;
-
+    
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
     OpenFile  *openFile = nullptr;
     OpenFile* dirFile = new OpenFile(dirSector);
     
     DEBUG('f', "Opening file %s\n", name);
+    GetDirLock(dirSector)->AcquireRead();
     dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
     //ASSERT(sector != -1);
@@ -257,14 +274,14 @@ FileSystem::Open(const char *_name)
         FileTableEntry* tableEntry = fileTable->Acquire(sector);
         if (!tableEntry) {
             DEBUG('f', "tableEntry llena");
-            fsLock->Release();
+            GetDirLock(dirSector)->ReleaseRead();
             return nullptr;
         }
         else {
             openFile = new OpenFile(sector,tableEntry);  // `name` was found in directory.
         }
     }
-    fsLock->Release();
+    GetDirLock(dirSector)->ReleaseRead();
     return openFile;  // Return null if not found.
 }
 
@@ -285,16 +302,18 @@ FileSystem::Remove(const char *_name)
 {
     ASSERT(_name != nullptr);
 
-    fsLock->Acquire();
-
-
+    
+    
     char *nameCopy = strdup(_name);
     pair<int,char*> res = ResolvePath(nameCopy);
     int dirSector = res.first;
     char* name = res.second;
     OpenFile* dirFile = new OpenFile(dirSector);
-
+    
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
+    
+    GetDirLock(dirSector)->AcquireWrite();
+    
     dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
     if (sector == -1) {
@@ -313,7 +332,7 @@ FileSystem::Remove(const char *_name)
         DeletePhysicalSector(sector);
     }
 
-    fsLock->Release();
+    GetDirLock(dirSector)->ReleaseWrite();
 
     return true;
 }
@@ -322,14 +341,15 @@ void
 FileSystem::DeletePhysicalSector(int sector) {
     FileHeader *fileH = new FileHeader();
     fileH->FetchFrom(sector);
-    
     Bitmap *freeMap = new Bitmap(NUM_SECTORS);
+    fsLock->Acquire();
     freeMap->FetchFrom(freeMapFile);
     
     fileH->Deallocate(freeMap);  // Remove data blocks.
     freeMap->Clear(sector);      // Remove header block.
     
     freeMap->WriteBack(freeMapFile);  // Flush to disk.
+    fsLock->Release();
     delete fileH;
     delete freeMap;
 }
@@ -594,11 +614,13 @@ FileSystem::ResolvePath(char* path) {
     if (path[0] == '/') {
         dirSector = DIRECTORY_SECTOR;
     }
+    GetDirLock(dirSector)->AcquireRead();
     
     char div[] = "/";
     vector<char*> tokensArr = parse(path, div);
     
     if (tokensArr.empty()) {
+        GetDirLock(dirSector)->ReleaseRead();
         return {-1,nullptr};
     }
     
@@ -615,14 +637,18 @@ FileSystem::ResolvePath(char* path) {
             for (char* token : tokensArr) {
                 free(token);
             }
+            GetDirLock(dirSector)->ReleaseRead();
             return {-1,nullptr};
         }
-
-        dirSector = entry->sector;
+        int newSector = entry->sector;
         delete dir;
         delete dirFile;
+        GetDirLock(newSector)->AcquireRead();
+        GetDirLock(dirSector)->ReleaseRead();
+        dirSector = newSector;
 
         if (dirSector == -1) {
+            GetDirLock(dirSector)->ReleaseRead();
             return {-1,nullptr};
         }
     }
@@ -633,6 +659,7 @@ FileSystem::ResolvePath(char* path) {
         free(token);
     }
     DEBUG('f', "dirSector : %u name: %s", dirSector,name);
+    GetDirLock(dirSector)->ReleaseRead();
     return {dirSector,name};
 }
 
@@ -691,18 +718,18 @@ bool
 FileSystem::CreateDir(const char* _name) {
     ASSERT(_name != nullptr);
     
-    fsLock->Acquire();
     DEBUG('f', "Creating dir %s\n", _name);
-
+    
     char* nameCopy = strdup(_name);
     
     pair <int,char*> res = ResolvePath(nameCopy);
     int fatherDirSector = res.first;
     char* name = res.second;
-
+    
     OpenFile* fatherDirFile = new OpenFile(fatherDirSector);
-
+    
     Directory *fatherDir = new Directory(1);
+    GetDirLock(fatherDirSector)->AcquireWrite();
     fatherDir->FetchFrom(fatherDirFile);
     
     bool success;
@@ -711,15 +738,18 @@ FileSystem::CreateDir(const char* _name) {
     }
     else {
         Bitmap *freeMap = new Bitmap(NUM_SECTORS);
+        fsLock->Acquire();
         freeMap->FetchFrom(freeMapFile);
         int newDirSector = freeMap->Find();
 
         if (newDirSector == -1) {
             success = false;
+            fsLock->Release();
         }
 
         else if (!fatherDir->Add(name,newDirSector,true)) {
             success = false;
+            fsLock->Release();
         }
 
         else {
@@ -752,6 +782,7 @@ FileSystem::CreateDir(const char* _name) {
                 delete newDir;
                 delete newDirFile;
             }
+            fsLock->Release();
             delete h;
         }
         delete freeMap;
@@ -762,6 +793,16 @@ FileSystem::CreateDir(const char* _name) {
     delete fatherDirFile;
     free(name);
     free(nameCopy);
-    fsLock->Release();
+    GetDirLock(fatherDirSector)->ReleaseWrite();
     return success;
+}
+
+RWLock*
+FileSystem::GetDirLock(int sector) {
+    lockDirArr->Acquire();
+    if(!dirLocks[sector]) {
+        dirLocks[sector] = new RWLock();
+    }
+    lockDirArr->Release();
+    return dirLocks[sector];
 }
