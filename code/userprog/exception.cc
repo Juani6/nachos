@@ -242,12 +242,12 @@ static void syscall_SC_READ() {
             if (readBytes > 0) {
                 WriteBufferToUser(auxBuff, buffAddr, readBytes);
                 delete[] auxBuff;
-                machine->WriteRegister(2,SC_ERROR);
+                machine->WriteRegister(2, readBytes);
                 return;
             } 
-                
+            
             delete[] auxBuff;
-            machine->WriteRegister(2, readBytes);
+            machine->WriteRegister(2,SC_ERROR);
 
 }
 
