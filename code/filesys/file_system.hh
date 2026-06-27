@@ -164,6 +164,9 @@ private:
     RWLock* dirLocks[NUM_SECTORS];
     RWLock* GetDirLock(int sector);
     Lock* lockDirArr;
+
+    int GetCurrentDirSector();
+    void SetCurrentDirSector(int sector);
 };
 
 #endif

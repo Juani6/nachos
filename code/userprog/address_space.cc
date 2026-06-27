@@ -124,6 +124,7 @@ AddressSpace::AddressSpace(OpenFile *executable_file,unsigned _pid, Thread* _own
 {
     pid = _pid;
     _executable_file = executable_file;
+    currentDirSector = DIRECTORY_SECTOR;
     ASSERT(executable_file != nullptr);
     
     exe = new Executable(executable_file);

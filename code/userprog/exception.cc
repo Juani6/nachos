@@ -365,6 +365,8 @@ static void syscall_SC_EXEC() {
 
             AddressSpace *space = new AddressSpace(executable,pid, newThread);
             newThread->space = space;
+            // El hilo nuevo hereda la ubicacion del padre
+            newThread->space->currentDirSector = currentThread->space->currentDirSector;
             
             machine->WriteRegister(2,pid);
            

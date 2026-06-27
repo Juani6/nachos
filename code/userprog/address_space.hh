@@ -71,7 +71,8 @@ public:
     void NotInSwap(unsigned vpn);
 
     bool GetReadFlag(unsigned vpn);
-    private:
+    int currentDirSector;
+private:
     
 
     void InitSwapFile();

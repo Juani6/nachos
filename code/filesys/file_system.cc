@@ -202,33 +202,43 @@ FileSystem::Create(const char *_name, unsigned initialSize)
 
     if (dir->Find(name) != -1) {
         success = false;  // File is already in directory.
-    } else {
+    } 
+    
+    else {
         fsLock->Acquire();
         Bitmap *freeMap = new Bitmap(NUM_SECTORS);
         freeMap->FetchFrom(freeMapFile);
         int sector = freeMap->Find();
-          // Find a sector to hold the file header.
+        
+        // Find a sector to hold the file header.
         if (sector == -1) {
             success = false;  // No free block for file header.
             fsLock->Release();
-        } else if (!dir->Add(name, sector)) {
+        } 
+        
+        else if (!dir->Add(name, sector)) {
             success = false;  // No space in directory.
             fsLock->Release();
-        } else {
+        } 
+        
+        else {
             FileHeader *h = new FileHeader();
             success = h->Allocate(freeMap, initialSize);
-              // Fails if no space on disk for data.
+            // Fails if no space on disk for data.
+            
             if (success) {
                 // Everything worked, flush all changes back to disk.
                 h->WriteBack(sector);
                 dir->WriteBack(dirFile);
                 freeMap->WriteBack(freeMapFile);
             }
+            
             fsLock->Release();
             delete h;
         }
         delete freeMap;
     }
+
     delete dir;
     delete dirFile;
     free(nameCopy);
@@ -317,8 +327,12 @@ FileSystem::Remove(const char *_name)
     dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
     if (sector == -1) {
-       delete dir;
-       return false;  // file not found
+        delete dir;
+        delete dirFile;
+        free(name);
+        free(nameCopy);
+        GetDirLock(dirSector)->ReleaseWrite();
+        return false;  // file not found
     }
     // Inicialmente borramos el directorio y despues
     // se vera quien elimina los datos del disco
@@ -357,7 +371,13 @@ FileSystem::DeletePhysicalSector(int sector) {
 /// List all the files in the file system directory.
 void
 FileSystem::List()
-{
+{   
+    int currentDirSector = DIRECTORY_SECTOR;
+    
+    if (currentThread->space) {
+        currentDirSector = GetCurrentDirSector();
+    }
+    
     Directory *dir = new Directory(NUM_DIR_ENTRIES);
     OpenFile* dirFile = new OpenFile(currentDirSector);
     dir->FetchFrom(dirFile);
@@ -610,9 +630,12 @@ vector<char*> parse(char* _buff,char* div) {
 pair<int,char*>
 FileSystem::ResolvePath(char* path) {
     
-    int dirSector = currentDirSector;
+    int dirSector;
     if (path[0] == '/') {
         dirSector = DIRECTORY_SECTOR;
+    } 
+    else {
+        dirSector = GetCurrentDirSector();
     }
     GetDirLock(dirSector)->AcquireRead();
     
@@ -665,33 +688,39 @@ FileSystem::ResolvePath(char* path) {
 
 int
 FileSystem::ChangeDir(char* path) {
-
+    
     if (strcmp(path, "/") == 0) {
-        currentDirSector = DIRECTORY_SECTOR;
+        SetCurrentDirSector(DIRECTORY_SECTOR);
         return 0;
     }
-
+    
     std::pair<int,char*> result = ResolvePath(path);
     int dirSector = result.first;
     char* name = result.second;
 
     if (name == nullptr || strlen(name) == 0) {
-        currentDirSector = dirSector;
+        SetCurrentDirSector(dirSector);
+        
         free(name);
         return 0;
     }
 
     Directory *dir = new Directory(1);
     OpenFile* dirFile = new OpenFile(dirSector);
+    
+    GetDirLock(dirSector)->AcquireRead();
+    
     dir->FetchFrom(dirFile);
     int sector = dir->Find(name);
 
 
-    int oldSector = currentDirSector;
+    int oldSector = GetCurrentDirSector();
+    
     DEBUG('e',"Cambiando del sector %d a %d\n", oldSector, sector);
 
     if (sector == -1){
         DEBUG('f', "Error en el path\n");
+        GetDirLock(dirSector)->ReleaseRead();
         delete dir;
         delete dirFile;
         free(name);
@@ -702,12 +731,15 @@ FileSystem::ChangeDir(char* path) {
 
     if (!entry->isDirectory) {
         DEBUG('f', "No es un directorio\n");
+        GetDirLock(dirSector)->ReleaseRead();
         delete dir;
         delete dirFile;
         free(name);
         return -1;
     }
-    currentDirSector = sector;
+    SetCurrentDirSector(sector);
+
+    GetDirLock(dirSector)->ReleaseRead();
     delete dir;
     delete dirFile;
     free(name);
@@ -805,4 +837,19 @@ FileSystem::GetDirLock(int sector) {
     }
     lockDirArr->Release();
     return dirLocks[sector];
+}
+
+int
+FileSystem::GetCurrentDirSector() {
+    if (currentThread->space)
+        return currentThread->space->currentDirSector;
+    return kernelDirSector;
+}
+
+void
+FileSystem::SetCurrentDirSector(int sector) {
+    if (currentThread->space)
+        currentThread->space->currentDirSector = sector;
+    else
+        kernelDirSector = sector;
 }

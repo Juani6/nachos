@@ -32,7 +32,7 @@ Timer *timer;                 ///< The hardware timer device, for invoking
 
 #ifdef FILESYS
 FileTable *fileTable;
-int currentDirSector = DIRECTORY_SECTOR;
+int kernelDirSector = DIRECTORY_SECTOR;
 #endif
 
 #ifdef FILESYS_NEEDED

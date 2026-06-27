@@ -65,9 +65,7 @@ extern Timer *timer;                 ///< The hardware alarm clock.
 	extern SynchDisk *synchDisk;
 	#include "filesys/file_table.hh"
 	extern FileTable *fileTable;
-	// Si quisieramos implementar multithreading
-	// basta con ponerlo en cada user space
-	extern int currentDirSector;
+	extern int kernelDirSector;
 #endif
 
 #endif
