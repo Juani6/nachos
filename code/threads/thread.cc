@@ -56,6 +56,7 @@ Thread::Thread(const char *threadName,bool join,int prio)
     joinable = join;
     if(joinable) {
         pipe = new Channel("Pipe");
+        alreadyJoined = false;
     }
     // EJ 5
     ASSERT(prio >= 0 && prio < 10);
@@ -352,15 +353,14 @@ int
 Thread::Join()
 {
     ASSERT(joinable);
+    ASSERT(!this->alreadyJoined);
     ASSERT(this != currentThread);
     DEBUG('s',"[%s] Me uní a [%s]\n",currentThread->GetName(),this->GetName());
+    this->alreadyJoined = true;
     int sonStatus = this->pipe->Read();
 	
     /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_EXIT*/
-#ifndef USER_PROGRAM
-//    threadToBeDestroyed = this;
-//    this->Finish();
-#endif
+
     return sonStatus;
 }
 void

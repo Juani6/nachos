@@ -136,6 +136,8 @@ public:
     int Join();
 		
 	const bool IsJoinable();
+    // Verificamos que no se puedan "Join" 2 threads al mismo
+    bool alreadyJoined;
 
     /// EJ 5 Plancha 2
     int GetPriority();
@@ -194,7 +196,6 @@ public:
 
     // User code this thread is running.
     AddressSpace *space;
-
 #endif
 };
 

@@ -27,12 +27,12 @@ int cant_total = 0;
 
 
 Condition* notEmptyBufferLock ;
-Lock* lock;
+Lock *prod,*cons, *buff ;
 Condition* fullBufferLock;
 
 static void Prod(void* i){
     const int *n = (int*) i;
-	lock->Acquire();
+	prod->Acquire();
     while(cant_total < TOTAL){
 		
 		while (cant_elem == SIZE_BUFFER) {
@@ -41,21 +41,22 @@ static void Prod(void* i){
 		}
 		if (cant_total < TOTAL) {
 
-			
+			buff->Acquire();
 			Buffer[cant_elem] = cant_total;
+			buff->Release();
 			cant_elem++;
 			cant_total++;
 			printf("Productor  produce: [%s] en %d\n", currentThread->GetName(), cant_total);
 			
-			notEmptyBufferLock->Broadcast();
+			notEmptyBufferLock->Signal();
 			
 		}
-        lock->Release();
+        prod->Release();
         currentThread->Yield();
-		lock->Acquire();
+		prod->Acquire();
     }
 	notEmptyBufferLock->Broadcast();
-	lock->Release();
+	prod->Release();
     done [SIZE_CONS + *n ] = true;
 		return;
 }
@@ -65,7 +66,7 @@ static void Cons(void* i){
     const int *n = (int*) i;
 
 
-	lock->Acquire();
+	cons->Acquire();
 
     while(cant_total < TOTAL){
         
@@ -74,17 +75,19 @@ static void Cons(void* i){
 			notEmptyBufferLock->Wait();
 		}
         if(cant_total>= TOTAL)
-            continue;
+            break;
+        buff->Acquire();
 		printf("Consumidor consume: [%s] en %d\n", currentThread->GetName(), cant_total);
+        buff->Release();
         cant_elem--;
         fullBufferLock->Broadcast();
         
-        lock->Release();
+        cons->Release();
         currentThread->Yield();
-		lock->Acquire();
+		cons->Acquire();
     }
-	notEmptyBufferLock->Broadcast();
-	lock->Release();
+    fullBufferLock->Broadcast();
+	cons->Release();
     done[*n] = true;
 	return;
 }
@@ -93,9 +96,11 @@ void
 ThreadTestProdCons()
 {
 
-	lock = new Lock("ProdCons");
-	fullBufferLock	 = new Condition("fullBufferLock", lock);
-	notEmptyBufferLock  = new Condition("cantFree", lock);
+	prod = new Lock("Prod");
+	cons = new Lock("Cons");
+	buff = new Lock("buff");
+	fullBufferLock	 = new Condition("fullBufferLock", prod);
+	notEmptyBufferLock  = new Condition("cantFree", cons);
     //PORQUE SI PASO LAS VARIABLES DE OTRA FORMA SE PASAN MAL
     int* valuesC = new int [SIZE_CONS];
     int* valuesP = new int [SIZE_PROD];
@@ -139,5 +144,7 @@ ThreadTestProdCons()
     delete[] nameP;
     delete fullBufferLock;
     delete notEmptyBufferLock;
-    delete lock;
+    delete buff;
+    delete prod;
+    delete cons;
 }
