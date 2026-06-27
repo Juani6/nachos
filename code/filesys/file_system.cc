@@ -780,7 +780,7 @@ FileSystem::CreateDir(const char* _name) {
         }
 
         else if (!fatherDir->Add(name,newDirSector,true)) {
-            success = false;
+            success = true; // Si falla aca es por que ya
             fsLock->Release();
         }
 

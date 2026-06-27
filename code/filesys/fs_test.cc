@@ -176,11 +176,17 @@ TestHierarchy()
 
     // 1. crear directorio
     printf("Creating subdir...\n");
-    ASSERT(fileSystem->CreateDir("subdir"));
+    if (!fileSystem->CreateDir("subdir")) {
+        printf("Subdirectorio \"subdir\" ya creado, test invalido. Ejecutar con -f.\n");
+        ASSERT(false);
+    }
 
     // 2. crear archivo en subdir
     printf("Creating subdir/file.txt...\n");
-    ASSERT(fileSystem->Create("subdir/file.txt", 0));
+    if (!fileSystem->Create("subdir/file.txt", 0)) {
+        printf("Subdirectorio \"subdir/file.txt\" ya creado, test invalido. Ejecutar con -f.\n");
+        ASSERT(false);
+    }
 
     // 3. abrir y escribir
     OpenFile *f = fileSystem->Open("subdir/file.txt");

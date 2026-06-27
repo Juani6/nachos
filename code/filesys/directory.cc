@@ -131,6 +131,7 @@ Directory::Add(const char *name, int newSector, bool _isDir)
     ASSERT(name != nullptr);
     
     if (FindIndex(name) != -1) {
+        // Si ya esta creado no hacemos nada
         return false;
     }
     unsigned i = 0;
