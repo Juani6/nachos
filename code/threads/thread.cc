@@ -358,8 +358,8 @@ Thread::Join()
 	
     /* Si es un hilo del kernel lo destruyo, caso contrario se encarga la syscall SC_EXIT*/
 #ifndef USER_PROGRAM
-    threadToBeDestroyed = this;
-    this->Finish();
+//    threadToBeDestroyed = this;
+//    this->Finish();
 #endif
     return sonStatus;
 }

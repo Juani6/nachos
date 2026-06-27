@@ -27,7 +27,7 @@ Condition::Condition(const char *debugName, Lock *conditionLock)
 	name = debugName;
 	externalLock = conditionLock;
 	internalLock = new Lock("internalConditionLock");
-	internalSem = new Semaphore("conditionSem", 1);
+	internalSem = new Semaphore("conditionSem", 0);
 	waiters = 0;
 }
 
