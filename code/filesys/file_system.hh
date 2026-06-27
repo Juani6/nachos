@@ -37,6 +37,14 @@
 
 
 #include "open_file.hh"
+/// Sectors containing the file headers for the bitmap of free sectors, and
+/// the directory of files.  These file headers are placed in well-known
+/// sectors, so that they can be located on boot-up.
+const unsigned FREE_MAP_SECTOR = 0;
+const unsigned DIRECTORY_SECTOR = 1;
+// Los movi aca para poder usarlos de manera mas libre
+
+
 
 
 #ifdef FILESYS_STUB  // Temporarily implement file system calls as calls to
@@ -97,12 +105,6 @@ public:
 #include <utility>
 #include "threads/rwlock.hh"
 
-/// Sectors containing the file headers for the bitmap of free sectors, and
-/// the directory of files.  These file headers are placed in well-known
-/// sectors, so that they can be located on boot-up.
-const unsigned FREE_MAP_SECTOR = 0;
-const unsigned DIRECTORY_SECTOR = 1;
-// Los movi aca para poder usarlos de manera mas libre
 
 /// Initial file sizes for the bitmap and directory; until the file system
 /// supports extensible files, the directory size sets the maximum number of
