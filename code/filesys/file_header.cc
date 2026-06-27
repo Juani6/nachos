@@ -233,8 +233,8 @@ FileHeader::GetRaw() const
 
 bool
 FileHeader::Extend(unsigned newSize) {
-
     Bitmap* freeMap = new Bitmap(NUM_SECTORS);
+    fileSystem->fsLock->Acquire();
     freeMap->FetchFrom(fileSystem->GetFreeMapFile());
 
     raw.numBytes = newSize;
@@ -247,9 +247,11 @@ FileHeader::Extend(unsigned newSize) {
     if (newNumSector <= oldNumSectors) {
         raw.numBytes = newSize;
         delete freeMap;
+        fileSystem->fsLock->Release();
         return true;
     }
     if (freeMap->CountClear() < diffSector) {
+        fileSystem->fsLock->Release();
         return false;  // Not enough space.
     }
 
@@ -292,5 +294,6 @@ FileHeader::Extend(unsigned newSize) {
     freeMap->WriteBack(fileSystem->GetFreeMapFile());
 
     delete freeMap;
+    fileSystem->fsLock->Release();
     return true;
 }
