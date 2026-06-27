@@ -10,6 +10,7 @@ RWLock::RWLock() {
 }
 
 RWLock::~RWLock() {
+	ASSERT(readers == 0 && writing == 0); // <- Supongo que es necesario 
 	delete lock;
 	delete cond;
 }

@@ -89,6 +89,7 @@ void StartProcess(const char *file);
 void ConsoleTest(const char *in, const char *out);
 void RunFileSystemConcurrencyTests();
 void HierarchyTest();
+void FileSystemRWTest();
 
 static inline void
 PrintVersion()
@@ -188,6 +189,9 @@ main(int argc, char **argv)
         }
         else if (!strcmp(*argv, "-th")) {
             HierarchyTest();
+        }
+        else if (!strcmp(*argv, "-trw")){
+            FileSystemRWTest();
         }
         
 #endif
