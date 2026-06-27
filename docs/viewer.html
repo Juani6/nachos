@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NachOS — Documentación</title>
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Highlight.js for code blocks -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    /* ── Reset & tokens ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --bg2:       #161b22;
+      --bg3:       #21262d;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --text-dim:  #8b949e;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --accent3:   #d2a8ff;
+      --accent4:   #ffa657;
+      --danger:    #f85149;
+      --sidebar-w: 300px;
+      --header-h:  52px;
+      --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    html, body { height: 100%; font-family: var(--font-sans); background: var(--bg); color: var(--text); }
+
+    /* ── Top header ─────────────────────────────────────────────────── */
+    #header {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 20px; gap: 14px;
+      z-index: 100;
+    }
+    #header .logo {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+      letter-spacing: -0.5px; white-space: nowrap;
+    }
+    #header .logo span { color: var(--text-dim); font-weight: 400; }
+    #search {
+      flex: 1; max-width: 400px; padding: 7px 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: .85rem;
+      outline: none; transition: border-color .15s;
+    }
+    #search:focus { border-color: var(--accent); }
+    #search::placeholder { color: var(--text-dim); }
+    #toggle-sidebar {
+      display: none; background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 1.2rem; padding: 4px 8px;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    #layout {
+      display: flex;
+      padding-top: var(--header-h);
+      height: 100%;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--bg2); border-right: 1px solid var(--border);
+      overflow-y: auto; height: calc(100vh - var(--header-h));
+      position: sticky; top: var(--header-h);
+      padding-bottom: 32px;
+    }
+
+    .nav-section { margin-top: 8px; }
+    .nav-section-title {
+      padding: 10px 16px 6px;
+      font-size: .68rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+
+    .nav-group { margin: 2px 0; }
+    .nav-group-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 16px; cursor: pointer;
+      font-size: .8rem; font-weight: 600;
+      color: var(--text-dim); user-select: none;
+      border-radius: 4px; margin: 0 6px;
+      transition: background .1s, color .1s;
+    }
+    .nav-group-header:hover { background: var(--bg3); color: var(--text); }
+    .nav-group-header .chevron {
+      font-size: .6rem; transition: transform .2s; margin-left: auto;
+    }
+    .nav-group.collapsed .chevron { transform: rotate(-90deg); }
+    .nav-group-items { overflow: hidden; }
+    .nav-group.collapsed .nav-group-items { display: none; }
+
+    .nav-pill {
+      display: inline-block; padding: 1px 6px; border-radius: 10px;
+      font-size: .6rem; font-weight: 700; vertical-align: middle;
+      margin-right: 2px;
+    }
+    .pill-l1 { background: #1f3a5f; color: var(--accent); }
+    .pill-l2 { background: #1a3a22; color: var(--accent2); }
+    .pill-l3 { background: #2d1f4f; color: var(--accent3); }
+
+    .nav-item {
+      display: block; padding: 4px 16px 4px 28px;
+      font-size: .8rem; color: var(--text-dim);
+      text-decoration: none; cursor: pointer;
+      border-radius: 4px; margin: 1px 6px;
+      transition: background .1s, color .1s;
+      border: none; background: none; width: calc(100% - 12px); text-align: left;
+    }
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active { background: var(--bg3); color: var(--accent); font-weight: 600; }
+    .nav-item.hidden { display: none; }
+
+    /* ── Main content ────────────────────────────────────────────────── */
+    #content {
+      flex: 1; overflow-y: auto; padding: 40px 48px;
+      max-width: 900px; min-width: 0;
+    }
+
+    /* ── Welcome screen ──────────────────────────────────────────────── */
+    #welcome {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 60vh; gap: 16px; text-align: center;
+    }
+    #welcome h1 { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    #welcome p { color: var(--text-dim); max-width: 440px; line-height: 1.6; }
+    .level-cards { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+    .level-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; width: 180px; text-align: left;
+      cursor: pointer; transition: border-color .15s, transform .15s;
+    }
+    .level-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .level-card .num { font-size: 1.5rem; font-weight: 800; }
+    .level-card .label { font-size: .8rem; color: var(--text-dim); margin-top: 2px; }
+    .l1 .num { color: var(--accent); }
+    .l2 .num { color: var(--accent2); }
+    .l3 .num { color: var(--accent3); }
+
+    /* ── Loading / error states ──────────────────────────────────────── */
+    #loading { text-align: center; padding: 60px; color: var(--text-dim); }
+    #error-msg {
+      background: #2d1010; border: 1px solid var(--danger);
+      border-radius: 8px; padding: 20px; color: var(--danger);
+      font-size: .9rem; line-height: 1.6;
+    }
+    #error-msg code { background: #3d1515; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); }
+
+    /* ── Markdown rendered content ───────────────────────────────────── */
+    #md-body { line-height: 1.7; font-size: .95rem; }
+
+    #md-body h1 { font-size: 1.8rem; font-weight: 800; color: var(--text); margin-bottom: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    #md-body h2 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    #md-body h3 { font-size: 1.05rem; font-weight: 700; color: var(--accent); margin: 28px 0 10px; }
+    #md-body h4 { font-size: .95rem; font-weight: 600; color: var(--accent2); margin: 20px 0 8px; }
+
+    #md-body p { margin: 10px 0; color: var(--text); }
+    #md-body strong { color: var(--text); font-weight: 700; }
+    #md-body em { color: var(--text-dim); }
+
+    #md-body a { color: var(--accent); text-decoration: none; }
+    #md-body a:hover { text-decoration: underline; }
+
+    #md-body ul, #md-body ol { padding-left: 24px; margin: 8px 0; }
+    #md-body li { margin: 4px 0; }
+
+    #md-body hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+    #md-body blockquote {
+      border-left: 3px solid var(--accent); padding: 8px 16px;
+      margin: 14px 0; background: var(--bg2); border-radius: 0 6px 6px 0;
+      color: var(--text-dim); font-style: italic;
+    }
+
+    #md-body table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .88rem; }
+    #md-body th { background: var(--bg3); padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid var(--border); color: var(--text-dim); }
+    #md-body td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    #md-body tr:nth-child(even) td { background: #0f1419; }
+    #md-body tr:hover td { background: var(--bg3); }
+
+    #md-body code {
+      font-family: var(--font-mono); font-size: .85em;
+      background: var(--bg3); padding: 2px 6px; border-radius: 4px;
+      color: var(--accent4); border: 1px solid var(--border);
+    }
+    #md-body pre {
+      background: #010409; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+      margin: 14px 0;
+    }
+    #md-body pre code {
+      background: none; border: none; padding: 0; color: inherit; font-size: .85rem;
+    }
+
+    /* ── Breadcrumb ──────────────────────────────────────────────────── */
+    #breadcrumb {
+      font-size: .78rem; color: var(--text-dim); margin-bottom: 24px;
+      display: flex; gap: 6px; align-items: center;
+    }
+    #breadcrumb span { color: var(--border); }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      #toggle-sidebar { display: block; }
+      #sidebar {
+        position: fixed; left: 0; top: var(--header-h);
+        z-index: 50; transform: translateX(-100%);
+        transition: transform .25s; height: calc(100vh - var(--header-h));
+      }
+      #sidebar.open { transform: translateX(0); }
+      #content { padding: 24px 20px; }
+    }
+
+    /* ── Scrollbar ───────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────── -->
+<div id="header">
+  <button id="toggle-sidebar" title="Toggle sidebar">☰</button>
+  <div class="logo">NachOS <span>/ Docs</span></div>
+  <input id="search" type="search" placeholder="Buscar en la documentación…" autocomplete="off" />
+</div>
+
+<!-- ── Layout ────────────────────────────────────────────────────────── -->
+<div id="layout">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="nav-section">
+      <div class="nav-section-title">General</div>
+      <button class="nav-item" data-path="00-overview.md" data-crumb="Overview" data-label="Visión General">
+        📋 00-overview.md
+      </button>
+    </div>
+
+    <!-- Level 1 -->
+    <div class="nav-section">
+      <div class="nav-section-title"><span class="nav-pill pill-l1">L1</span> Subsistemas</div>
+
+      <button class="nav-item" data-path="01-subsistemas/scheduler.md" data-crumb="L1 / Subsistemas" data-label="Scheduler / Threads">
+        Scheduler / Threads
+      </button>
+      <button class="nav-item" data-path="01-subsistemas/procesos.md" data-crumb="L1 / Subsistemas" data-label="Procesos y Syscalls">
+        Procesos y Syscalls
+      </button>
+      <button class="nav-item" data-path="01-subsistemas/vmem.md" data-crumb="L1 / Subsistemas" data-label="Memoria Virtual">
+        Memoria Virtual
+      </button>
+      <button class="nav-item" data-path="01-subsistemas/filesystem.md" data-crumb="L1 / Subsistemas" data-label="Filesystem">
+        Filesystem
+      </button>
+      <button class="nav-item" data-path="01-subsistemas/userland.md" data-crumb="L1 / Subsistemas" data-label="Userland">
+        Userland
+      </button>
+    </div>
+
+    <!-- Level 2 -->
+    <div class="nav-section">
+      <div class="nav-section-title"><span class="nav-pill pill-l2">L2</span> Módulos</div>
+
+      <!-- Group: Scheduler/Threads -->
+      <div class="nav-group" id="grp-threads">
+        <div class="nav-group-header" onclick="toggleGroup('grp-threads')">
+          🧵 Scheduler / Threads <span class="chevron">▾</span>
+        </div>
+        <div class="nav-group-items">
+          <button class="nav-item" data-path="02-modulos/thread.md"        data-crumb="L2 / Threads" data-label="thread.cc">thread.cc</button>
+          <button class="nav-item" data-path="02-modulos/scheduler.md"     data-crumb="L2 / Threads" data-label="scheduler.cc">scheduler.cc</button>
+          <button class="nav-item" data-path="02-modulos/semaphore.md"     data-crumb="L2 / Threads" data-label="semaphore.cc">semaphore.cc</button>
+          <button class="nav-item" data-path="02-modulos/lock.md"          data-crumb="L2 / Threads" data-label="lock.cc">lock.cc</button>
+          <button class="nav-item" data-path="02-modulos/condition.md"     data-crumb="L2 / Threads" data-label="condition.cc">condition.cc</button>
+          <button class="nav-item" data-path="02-modulos/channels.md"      data-crumb="L2 / Threads" data-label="channels.cc">channels.cc</button>
+          <button class="nav-item" data-path="02-modulos/rwlock.md"        data-crumb="L2 / Threads" data-label="rwlock.cc">rwlock.cc</button>
+          <button class="nav-item" data-path="02-modulos/switch_x86-64.md" data-crumb="L2 / Threads" data-label="switch_x86-64.S">switch_x86-64.S</button>
+        </div>
+      </div>
+
+      <!-- Group: Procesos -->
+      <div class="nav-group" id="grp-proc">
+        <div class="nav-group-header" onclick="toggleGroup('grp-proc')">
+          ⚙️ Procesos / Syscalls <span class="chevron">▾</span>
+        </div>
+        <div class="nav-group-items">
+          <button class="nav-item" data-path="02-modulos/exception.md"    data-crumb="L2 / Procesos" data-label="exception.cc">exception.cc</button>
+          <button class="nav-item" data-path="02-modulos/address_space.md" data-crumb="L2 / Procesos" data-label="address_space.cc">address_space.cc</button>
+          <button class="nav-item" data-path="02-modulos/executable.md"   data-crumb="L2 / Procesos" data-label="executable.cc">executable.cc</button>
+          <button class="nav-item" data-path="02-modulos/transfer.md"     data-crumb="L2 / Procesos" data-label="transfer.cc">transfer.cc</button>
+          <button class="nav-item" data-path="02-modulos/synchconsole.md" data-crumb="L2 / Procesos" data-label="synchconsole.cc">synchconsole.cc</button>
+        </div>
+      </div>
+
+      <!-- Group: VMem -->
+      <div class="nav-group" id="grp-vmem">
+        <div class="nav-group-header" onclick="toggleGroup('grp-vmem')">
+          🧠 Memoria Virtual <span class="chevron">▾</span>
+        </div>
+        <div class="nav-group-items">
+          <button class="nav-item" data-path="02-modulos/coremap.md" data-crumb="L2 / VMem" data-label="coremap.cc">coremap.cc</button>
+        </div>
+      </div>
+
+      <!-- Group: Filesystem -->
+      <div class="nav-group" id="grp-fs">
+        <div class="nav-group-header" onclick="toggleGroup('grp-fs')">
+          💾 Filesystem <span class="chevron">▾</span>
+        </div>
+        <div class="nav-group-items">
+          <button class="nav-item" data-path="02-modulos/file_system.md"  data-crumb="L2 / Filesystem" data-label="file_system.cc">file_system.cc</button>
+          <button class="nav-item" data-path="02-modulos/file_header.md"  data-crumb="L2 / Filesystem" data-label="file_header.cc">file_header.cc</button>
+          <button class="nav-item" data-path="02-modulos/directory.md"    data-crumb="L2 / Filesystem" data-label="directory.cc">directory.cc</button>
+          <button class="nav-item" data-path="02-modulos/open_file.md"    data-crumb="L2 / Filesystem" data-label="open_file.cc">open_file.cc</button>
+          <button class="nav-item" data-path="02-modulos/file_table.md"   data-crumb="L2 / Filesystem" data-label="file_table.cc">file_table.cc</button>
+          <button class="nav-item" data-path="02-modulos/synch_disk.md"   data-crumb="L2 / Filesystem" data-label="synch_disk.cc">synch_disk.cc</button>
+        </div>
+      </div>
+
+      <!-- Group: Userland -->
+      <div class="nav-group" id="grp-ul">
+        <div class="nav-group-header" onclick="toggleGroup('grp-ul')">
+          👤 Userland <span class="chevron">▾</span>
+        </div>
+        <div class="nav-group-items">
+          <button class="nav-item" data-path="02-modulos/start_s.md"    data-crumb="L2 / Userland" data-label="start.s">start.s</button>
+          <button class="nav-item" data-path="02-modulos/lib_userland.md" data-crumb="L2 / Userland" data-label="lib.c">lib.c</button>
+          <button class="nav-item" data-path="02-modulos/shell.md"       data-crumb="L2 / Userland" data-label="shell.c">shell.c</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level 3 -->
+    <div class="nav-section">
+      <div class="nav-section-title"><span class="nav-pill pill-l3">L3</span> Referencia de Funciones</div>
+
+      <button class="nav-item" data-path="03-referencia/referencia-thread.md"       data-crumb="L3 / Referencia" data-label="Thread">Thread</button>
+      <button class="nav-item" data-path="03-referencia/referencia-scheduler.md"    data-crumb="L3 / Referencia" data-label="Scheduler">Scheduler</button>
+      <button class="nav-item" data-path="03-referencia/referencia-sincronizacion.md" data-crumb="L3 / Referencia" data-label="Sincronización">Sincronización</button>
+      <button class="nav-item" data-path="03-referencia/referencia-exception.md"    data-crumb="L3 / Referencia" data-label="Exception Handlers">Exception Handlers</button>
+      <button class="nav-item" data-path="03-referencia/referencia-address_space.md" data-crumb="L3 / Referencia" data-label="AddressSpace">AddressSpace</button>
+      <button class="nav-item" data-path="03-referencia/referencia-coremap.md"      data-crumb="L3 / Referencia" data-label="CoreMap">CoreMap</button>
+      <button class="nav-item" data-path="03-referencia/referencia-file_system.md"  data-crumb="L3 / Referencia" data-label="FileSystem">FileSystem</button>
+      <button class="nav-item" data-path="03-referencia/referencia-file_header.md"  data-crumb="L3 / Referencia" data-label="FileHeader">FileHeader</button>
+      <button class="nav-item" data-path="03-referencia/referencia-open_file.md"    data-crumb="L3 / Referencia" data-label="OpenFile">OpenFile</button>
+      <button class="nav-item" data-path="03-referencia/referencia-file_table.md"   data-crumb="L3 / Referencia" data-label="FileTable">FileTable</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main id="content">
+    <div id="welcome">
+      <h1>NachOS Docs</h1>
+      <p>Documentación técnica del sistema operativo NachOS: simulador MIPS corriendo sobre Linux x86-64.</p>
+      <div class="level-cards">
+        <div class="level-card l1" onclick="loadDoc('01-subsistemas/scheduler.md','L1 / Subsistemas','Scheduler')">
+          <div class="num">L1</div>
+          <div class="label">5 subsistemas — arquitectura de alto nivel</div>
+        </div>
+        <div class="level-card l2" onclick="loadDoc('02-modulos/thread.md','L2 / Threads','thread.cc')">
+          <div class="num">L2</div>
+          <div class="label">23 módulos — un .md por archivo fuente</div>
+        </div>
+        <div class="level-card l3" onclick="loadDoc('03-referencia/referencia-thread.md','L3 / Referencia','Thread')">
+          <div class="num">L3</div>
+          <div class="label">10 archivos — referencia por función</div>
+        </div>
+      </div>
+      <p style="margin-top:20px; font-size:.8rem;">
+        💡 Seleccioná un documento en la barra lateral o usá <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-mono);font-size:.8rem">Ctrl+K</kbd> para buscar.
+      </p>
+      <p id="fetch-note" style="font-size:.75rem; color:var(--text-dim); margin-top:6px;"></p>
+    </div>
+
+    <div id="doc-view" style="display:none;">
+      <div id="breadcrumb"></div>
+      <div id="md-body"></div>
+    </div>
+
+    <div id="loading" style="display:none;">⏳ Cargando…</div>
+    <div id="error-msg" style="display:none;"></div>
+  </main>
+</div>
+
+<script>
+  /* ── marked config ─────────────────────────────────────────────── */
+  marked.setOptions({
+    gfm: true,
+    breaks: false,
+    highlight: function(code, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        return hljs.highlight(code, { language: lang }).value;
+      }
+      return hljs.highlightAuto(code).value;
+    }
+  });
+
+  /* ── State ─────────────────────────────────────────────────────── */
+  let currentPath = null;
+
+  /* ── Load document ─────────────────────────────────────────────── */
+  async function loadDoc(path, crumb, label) {
+    if (currentPath === path) return;
+    currentPath = path;
+
+    setActive(path);
+    showState('loading');
+
+    try {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+      const md = await res.text();
+
+      document.getElementById('breadcrumb').innerHTML =
+        `<span>${crumb}</span> <span>›</span> <strong>${label}</strong>`;
+
+      const rendered = marked.parse(md);
+      document.getElementById('md-body').innerHTML = rendered;
+
+      // Syntax highlight
+      document.querySelectorAll('#md-body pre code').forEach(el => hljs.highlightElement(el));
+
+      // Intercept internal .md links
+      document.querySelectorAll('#md-body a[href]').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && href.endsWith('.md') && !href.startsWith('http')) {
+          a.addEventListener('click', e => {
+            e.preventDefault();
+            const resolved = resolvePath(path, href);
+            const btn = document.querySelector(`[data-path="${resolved}"]`);
+            const bc = btn ? btn.dataset.crumb : 'Docs';
+            const lb = btn ? btn.dataset.label : resolved;
+            loadDoc(resolved, bc, lb);
+          });
+        }
+      });
+
+      showState('doc');
+      document.getElementById('content').scrollTo(0, 0);
+    } catch (err) {
+      showError(err, path);
+    }
+  }
+
+  function resolvePath(base, relative) {
+    const parts = base.split('/');
+    parts.pop();
+    relative.split('/').forEach(p => {
+      if (p === '..') parts.pop();
+      else if (p !== '.') parts.push(p);
+    });
+    return parts.join('/');
+  }
+
+  /* ── UI helpers ────────────────────────────────────────────────── */
+  function showState(state) {
+    document.getElementById('welcome').style.display   = state === 'welcome' ? '' : 'none';
+    document.getElementById('doc-view').style.display  = state === 'doc'     ? '' : 'none';
+    document.getElementById('loading').style.display   = state === 'loading' ? '' : 'none';
+    document.getElementById('error-msg').style.display = state === 'error'   ? '' : 'none';
+  }
+
+  function showError(err, path) {
+    const isFileProtocol = location.protocol === 'file:';
+    document.getElementById('error-msg').innerHTML = isFileProtocol
+      ? `<strong>⚠️ No se puede cargar vía <code>file://</code></strong><br><br>
+         Los navegadores bloquean <code>fetch()</code> en protocolo <code>file://</code> por restricciones de seguridad.<br><br>
+         <strong>Solución:</strong> servir con un servidor local desde la carpeta <code>docs/</code>:<br><br>
+         <code>python -m http.server 8080</code><br>
+         <code>npx serve .</code><br><br>
+         Luego abrí <code>http://localhost:8080/viewer.html</code>`
+      : `<strong>Error cargando <code>${path}</code></strong><br>${err.message}`;
+    showState('error');
+    currentPath = null;
+  }
+
+  function setActive(path) {
+    document.querySelectorAll('.nav-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.path === path);
+    });
+    // Auto-expand group containing active item
+    const btn = document.querySelector(`[data-path="${path}"]`);
+    if (btn) {
+      const group = btn.closest('.nav-group');
+      if (group && group.classList.contains('collapsed')) {
+        group.classList.remove('collapsed');
+      }
+    }
+  }
+
+  /* ── Nav group toggle ──────────────────────────────────────────── */
+  function toggleGroup(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  /* ── Wire nav items ────────────────────────────────────────────── */
+  document.querySelectorAll('.nav-item[data-path]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      loadDoc(btn.dataset.path, btn.dataset.crumb, btn.dataset.label);
+      // Close sidebar on mobile
+      document.getElementById('sidebar').classList.remove('open');
+    });
+  });
+
+  /* ── Sidebar toggle (mobile) ───────────────────────────────────── */
+  document.getElementById('toggle-sidebar').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  /* ── Search ────────────────────────────────────────────────────── */
+  document.getElementById('search').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.nav-item[data-path]').forEach(btn => {
+      const text = (btn.dataset.label + ' ' + btn.dataset.path).toLowerCase();
+      btn.classList.toggle('hidden', q.length > 0 && !text.includes(q));
+    });
+    // Expand all groups when searching
+    if (q.length > 0) {
+      document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('collapsed'));
+    }
+  });
+
+  /* ── Ctrl+K focuses search ─────────────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('search').focus();
+    }
+  });
+
+  /* ── Check fetch support & protocol ───────────────────────────── */
+  if (location.protocol === 'file:') {
+    document.getElementById('fetch-note').textContent =
+      '⚠️  Abriste el archivo directo (file://). Necesitás un servidor local para cargar los docs. Ej: python -m http.server 8080 desde la carpeta docs/';
+  }
+</script>
+</body>
+</html>
