@@ -5,7 +5,7 @@
 /// Ideally, we could read the unsorted array off of the file system,
 /// and store the result back to the file system!
 
-
+#include "lib.c"
 #include "syscall.h"
 
 
@@ -35,6 +35,7 @@ main(void)
         }
     }
 
-    // And then we're done -- should be 0!
+    // And then we're done -- should be 1!
+    putInt(A[0]);
     return A[0];
 }

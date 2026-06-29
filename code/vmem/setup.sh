@@ -14,6 +14,7 @@ $NACHOS -cp $USERLAND/cd cd
 $NACHOS -cp $USERLAND/mkdir mkdir
 $NACHOS -cp $USERLAND/halt halt
 $NACHOS -cp $USERLAND/cp cp
+$NACHOS -cp $USERLAND/sort sort
 $NACHOS -cp $USERLAND/cat cat
 $NACHOS -cp $USERLAND/cat.c cat.c
 $NACHOS -cp $USERLAND/cp.c cp.c
