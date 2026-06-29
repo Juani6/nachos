@@ -11,10 +11,11 @@ if (argc < 2)
 	OpenFileId fdDestiny;
 
 	fdDestiny = Open(destiny);
-	if (fdDestiny == -1) {
-		int archivo = Create(destiny);
-		fdDestiny = Open(destiny);
+	if (fdDestiny != -1) {
+		Remove(destiny);
 	}
+	int archivo = Create(destiny);
+	fdDestiny = Open(destiny);
 
 	char c;
 	int bytesRead = Read(&c,1,fdSource);

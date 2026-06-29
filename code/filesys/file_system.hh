@@ -158,6 +158,8 @@ public:
     int ChangeDir(char* path);
 
     bool CreateDir(const char *name);
+
+    Lock* freeMapLock;
 private:
     OpenFile *freeMapFile;  ///< Bit map of free disk blocks, represented as a
                             ///< file.

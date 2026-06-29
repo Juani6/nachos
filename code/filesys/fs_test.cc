@@ -38,7 +38,7 @@ Copy(const char *from, const char *to)
     ASSERT(to != nullptr);
 
     // Open UNIX file.
-    FILE *fp = fopen(from, "r");
+    FILE *fp = fopen(from, "rb");
     if (fp == nullptr) {
         printf("Copy: could not open input file %s\n", from);
         return;
@@ -48,6 +48,7 @@ Copy(const char *from, const char *to)
     fseek(fp, 0, 2);
     int fileLength = ftell(fp);
     fseek(fp, 0, 0);
+    printf("Copy : filelength =%d\n", fileLength);
 
     DEBUG('f', "Copying file %s, size %u, to file %s\n",
           from, fileLength, to);

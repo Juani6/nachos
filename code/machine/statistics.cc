@@ -60,7 +60,7 @@ Statistics::Debug()
 {
 #ifdef DFS_TICKS_FIX
     if (tickResets != 0) {
-        printf("WARNING: the tick counter was reset %lu times; the following"
+        DEBUG('p',"WARNING: the tick counter was reset %lu times; the following"
                " statistics may be invalid.\n\n", tickResets);
     }
 #endif

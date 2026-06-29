@@ -177,7 +177,7 @@ static void syscall_SC_CLOSE() {
 }
 
 static void syscall_SC_REMOVE() {
-     int filenameAddr = machine->ReadRegister(4);
+            int filenameAddr = machine->ReadRegister(4);
             if (filenameAddr == 0) {
                 DEBUG('e', "Error: address to filename string is null");
                 machine->WriteRegister(2,SC_ERROR);
@@ -209,6 +209,12 @@ static void syscall_SC_READ() {
 
             char *auxBuff = new char[size]; 
             int readBytes;
+            if (fid == CONSOLE_OUTPUT || size <= 0 || buffAddr == 0) {
+                delete []auxBuff;
+                machine->WriteRegister(2,SC_ERROR);
+                return;
+            }
+
             if (fid == CONSOLE_INPUT) {
                 if (synchConsole == nullptr) {
                     synchConsole = new SynchConsole();
@@ -239,15 +245,20 @@ static void syscall_SC_READ() {
             readBytes = f->Read(auxBuff,size);
             DEBUG('e',"%d readed bytes\n",readBytes);
             
-            if (readBytes > 0) {
-                WriteBufferToUser(auxBuff, buffAddr, readBytes);
+            if (readBytes < 0) {
                 delete[] auxBuff;
-                machine->WriteRegister(2, readBytes);
+                machine->WriteRegister(2, SC_ERROR);
                 return;
             } 
+            if (readBytes == 0) {
+                machine->WriteRegister(2,readBytes);
+                delete[] auxBuff;
+                return;    
+            }
+            WriteBufferToUser(auxBuff, buffAddr, readBytes);
             
             delete[] auxBuff;
-            machine->WriteRegister(2,SC_ERROR);
+            machine->WriteRegister(2,readBytes);
 
 }
 
@@ -258,6 +269,11 @@ static void syscall_SC_WRITE() {
 
     char *auxBuff = new char[size]; 
     int writeBytes;
+    if (fid == CONSOLE_INPUT || size <= 0 || buffAddr == 0) {
+        delete []auxBuff;
+        machine->WriteRegister(2,SC_ERROR);
+        return;
+    }
     if (fid == CONSOLE_OUTPUT) {
         if (synchConsole == nullptr) {
             synchConsole = new SynchConsole();

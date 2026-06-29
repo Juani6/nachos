@@ -232,11 +232,11 @@ FileSystem::Create(const char *_name, unsigned initialSize)
             if (success) {
                 // Everything worked, flush all changes back to disk.
                 h->WriteBack(sector);
-                dir->WriteBack(dirFile);
                 freeMap->WriteBack(freeMapFile);
+                fsLock->Release();
+                dir->WriteBack(dirFile);
             }
             
-            fsLock->Release();
             delete h;
         }
         delete freeMap;
@@ -838,6 +838,8 @@ FileSystem::CreateDir(const char* _name) {
                 newDir->Add("..", fatherDirSector, true);  // raíz apunta a sí misma
                 DEBUG('f',"CreateDir: '%s' guardado en sector=%d del padre=%d\n", name, newDirSector, fatherDirSector);
                 
+                fsLock->Release();
+
                 newDir->WriteBack(newDirFile);
                 fatherDir->WriteBack(fatherDirFile);
                 
@@ -845,7 +847,6 @@ FileSystem::CreateDir(const char* _name) {
                 delete newDir;
                 delete newDirFile;
             }
-            fsLock->Release();
             delete h;
         }
         delete freeMap;

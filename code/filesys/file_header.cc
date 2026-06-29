@@ -44,7 +44,7 @@ FileHeader::Allocate(Bitmap *freeMap, unsigned fileSize)
     if (fileSize > MAX_FILE_SIZE) {
         return false;
     }
-
+    memset(&raw, 0, sizeof(raw));
     raw.numBytes = fileSize;
     raw.numSectors = DivRoundUp(fileSize, SECTOR_SIZE);
     
@@ -245,7 +245,7 @@ FileHeader::GetRaw() const
 bool
 FileHeader::Extend(unsigned newSize) {
     Bitmap* freeMap = new Bitmap(NUM_SECTORS);
-    //->fsLock->Acquire();
+    fileSystem->fsLock->Acquire();
     freeMap->FetchFrom(fileSystem->GetFreeMapFile());
 
     
@@ -257,11 +257,11 @@ FileHeader::Extend(unsigned newSize) {
     if (newNumSector <= oldNumSectors) {
         raw.numBytes = newSize;
         delete freeMap;
-      //  fileSystem->fsLock->Release();
+        fileSystem->fsLock->Release();
         return true;
     }
     if (freeMap->CountClear() < diffSector) {
-        //fileSystem->fsLock->Release();
+        fileSystem->fsLock->Release();
         return false;  // Not enough space.
     }
     // Una vez verificado que hay espacio disponible modificamos los datos del hdr
@@ -307,6 +307,6 @@ FileHeader::Extend(unsigned newSize) {
     freeMap->WriteBack(fileSystem->GetFreeMapFile());
     
     delete freeMap;
-    //fileSystem->fsLock->Release();
+    fileSystem->fsLock->Release();
     return true;
 }
