@@ -238,25 +238,25 @@ AddressSpace::LoadPage(unsigned vpn) {
 AddressSpace::~AddressSpace()
 {   
     unsigned fpn;
+    mMapLock->Acquire();
     for (unsigned i = 0; i < numPages; i++) {
         fpn = pageTable[i].physicalPage;
         if (fpn != (unsigned)-1) {
         #ifdef SWAP
             if (coreMap->GetPage(fpn)->owner == owner) {
-                //mMapLock->Acquire();
                 coreMap->FreePage( (uint32_t) fpn);
-                //mMapLock->Release();
-
+                
             }
-        #else
+            #else
             memoryMap->Clear(fpn);
-        #endif
+            #endif
         }
+    mMapLock->Release();
     }
 #ifdef SWAP
     char * swapName = CreateSwapName();
-    delete swapFile;
     fileSystem->Remove(swapName);
+    delete swapFile;
     free(swapName);
     delete []shadowTable;
 #endif 
