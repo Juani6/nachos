@@ -561,7 +561,7 @@ static void LoadFromSwap(Thread* owner, unsigned vpn) {
             owner->space->GetPageTable()[vpn].dirty    = false;
             owner->space->GetPageTable()[vpn].use      = true;
             owner->space->GetPageTable()[vpn].readOnly = owner->space->GetReadFlag(vpn); 
-            owner->space->InSwap(vpn);
+            owner->space->NotInSwap(vpn);
             coreMap->UnPinPage(fpn);
         }
     #ifdef DEMAND_LOADING
