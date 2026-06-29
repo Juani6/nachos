@@ -300,9 +300,11 @@ Cleanup()
     delete synchDisk;
     #endif
 
+    #ifdef USER_PROGRAM
     if (synchConsole != nullptr) {
         delete synchConsole;
     }
+    #endif
     
     delete timer;
     delete scheduler;

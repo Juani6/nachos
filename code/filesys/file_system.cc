@@ -114,6 +114,8 @@ FileSystem::FileSystem(bool format)
         // to hold the file data for the directory and bitmap.
 
         DEBUG('f', "Writing bitmap and directory back to disk.\n");
+        dir->Add(".", DIRECTORY_SECTOR, true);
+        dir->Add("..", DIRECTORY_SECTOR, true);  // raíz apunta a sí misma
         freeMap->WriteBack(freeMapFile);     // flush changes to disk
         dir->WriteBack(directoryFile);
 
@@ -642,6 +644,7 @@ FileSystem::ResolvePath(char* path) {
     else {
         dirSector = GetCurrentDirSector();
     }
+
     GetDirLock(dirSector)->AcquireRead();
     
     char div[] = "/";
@@ -652,10 +655,30 @@ FileSystem::ResolvePath(char* path) {
         return {-1,nullptr};
     }
     
+    Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
+    OpenFile* dirFile = new OpenFile(dirSector);
+    dir->FetchFrom(dirFile);
+    
     for (size_t i = 0; i < tokensArr.size() - 1; i++) {
-        Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
-        OpenFile* dirFile = new OpenFile(dirSector);
-        dir->FetchFrom(dirFile);
+
+        if (!strcmp(tokensArr[i], ".")) {
+            continue;
+        }
+
+        if (!strcmp(tokensArr[i],"..")) {
+            DirectoryEntry* entry = dir->FindEntry("..");
+            int newSector = entry ? entry->sector : dirSector;
+            delete dir;
+            delete dirFile; 
+            GetDirLock(dirSector)->ReleaseRead();
+            dirSector = newSector;
+            dirFile = new OpenFile(dirSector);
+            dir = new Directory(1);
+            dir->FetchFrom(dirFile);
+            continue;
+        }
+
+
         DirectoryEntry* entry = dir->FindEntry(tokensArr[i]);
 
         if (entry == nullptr || !entry->isDirectory) {
@@ -693,6 +716,7 @@ FileSystem::ResolvePath(char* path) {
 
 int
 FileSystem::ChangeDir(char* path) {
+    DEBUG('e', "ChangeDir: path=%s currentDir=%d\n", path, GetCurrentDirSector());
     
     if (strcmp(path, "/") == 0) {
         SetCurrentDirSector(DIRECTORY_SECTOR);
@@ -704,8 +728,8 @@ FileSystem::ChangeDir(char* path) {
     char* name = result.second;
 
     if (name == nullptr || strlen(name) == 0) {
+        DEBUG('e', "ChangeDir: encontrado sector=%d\n", dirSector);
         SetCurrentDirSector(dirSector);
-        
         free(name);
         return 0;
     }
@@ -742,6 +766,7 @@ FileSystem::ChangeDir(char* path) {
         free(name);
         return -1;
     }
+    DEBUG('e', "ChangeDir: encontrado sector=%d\n", sector);
     SetCurrentDirSector(sector);
 
     GetDirLock(dirSector)->ReleaseRead();
@@ -809,7 +834,8 @@ FileSystem::CreateDir(const char* _name) {
                 
                 Directory* newDir = new Directory(NUM_DIR_ENTRIES);
                 OpenFile* newDirFile = new OpenFile(newDirSector);
-                
+                newDir->Add(".", newDirSector, true);
+                newDir->Add("..", fatherDirSector, true);  // raíz apunta a sí misma
                 DEBUG('f',"CreateDir: '%s' guardado en sector=%d del padre=%d\n", name, newDirSector, fatherDirSector);
                 
                 newDir->WriteBack(newDirFile);

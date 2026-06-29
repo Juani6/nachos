@@ -97,6 +97,29 @@ PrepareArguments(char *line, char **argv, unsigned argvSize)
     return 1;
 }
 
+static int
+ExecWithFallback(char *filename, char **argv) {
+    SpaceId pid = Exec(filename, argv);
+    if (pid == -1) {
+        char fullpath[MAX_LINE_SIZE];
+        // construir "/filename"
+        fullpath[0] = '/';
+        unsigned i;
+        for (i = 0; filename[i] != '\0'; i++) {
+            fullpath[i+1] = filename[i];
+        }
+        fullpath[i+1] = '\0';
+        pid = Exec(fullpath, argv);
+    }
+    return pid;
+}
+
+static inline int
+strcmp(const char *a, const char *b) {
+    while (*a && *a == *b) { a++; b++; }
+    return *a - *b;
+}
+
 int
 main(void)
 {
@@ -124,11 +147,15 @@ main(void)
         // TODO: check for errors when calling `Exec`; this depends on how
         //       errors are reported.
         if (line[0] == '&') {
-            const SpaceId newProc = Exec(line+1,argv);
-        }
-        else {
-            
-            const SpaceId newProc = Exec(line,argv);
+        const SpaceId newProc = ExecWithFallback(line+1, argv);
+        } else if (strcmp(argv[0], "cd") == 0) {
+            if (argv[1] == NULL) {
+                CD("/");
+            } else {
+                CD(argv[1]);
+            }
+        } else {
+            const SpaceId newProc = ExecWithFallback(line, argv);
             Join(newProc);
         }
         // TODO: is it necessary to check for errors after `Join` too, or
