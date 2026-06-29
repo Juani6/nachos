@@ -237,12 +237,11 @@ FileHeader::Extend(unsigned newSize) {
     //->fsLock->Acquire();
     freeMap->FetchFrom(fileSystem->GetFreeMapFile());
 
-    raw.numBytes = newSize;
-
+    
     unsigned newNumSector = DivRoundUp(newSize, SECTOR_SIZE);
     unsigned oldNumSectors = raw.numSectors;
     unsigned diffSector = newNumSector - oldNumSectors; // Cantidad de sectores a allocar 
-    raw.numSectors = newNumSector;
+    
     //DEBUG('f', "nNS = % u, oNS = %u, dS = %u", newNumSector, oldNumSectors, diffSector);
     if (newNumSector <= oldNumSectors) {
         raw.numBytes = newSize;
@@ -254,6 +253,9 @@ FileHeader::Extend(unsigned newSize) {
         //fileSystem->fsLock->Release();
         return false;  // Not enough space.
     }
+    // Una vez verificado que hay espacio disponible modificamos los datos del hdr
+    raw.numBytes = newSize;
+    raw.numSectors = newNumSector;
 
     unsigned fstLvl[NUMBER_POINTERS];
     unsigned sndLvl[NUMBER_POINTERS];
@@ -292,7 +294,7 @@ FileHeader::Extend(unsigned newSize) {
     }
     
     freeMap->WriteBack(fileSystem->GetFreeMapFile());
-
+    
     delete freeMap;
     //fileSystem->fsLock->Release();
     return true;
