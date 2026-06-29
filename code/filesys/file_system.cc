@@ -139,7 +139,7 @@ FileSystem::FileSystem(bool format)
 
 FileSystem::~FileSystem()
 {
-    // De estos dos ahora se encarga la fileTable
+    // De estos dos ahora se encarga el CleanUp
     delete freeMapFile;
     delete directoryFile;
     delete fsLock;
@@ -202,6 +202,7 @@ FileSystem::Create(const char *_name, unsigned initialSize)
 
     if (dir->Find(name) != -1) {
         success = false;  // File is already in directory.
+        DEBUG('f', "File already in directory. Aborting...\n");
     } 
     
     else {
@@ -356,14 +357,18 @@ FileSystem::DeletePhysicalSector(int sector) {
     FileHeader *fileH = new FileHeader();
     fileH->FetchFrom(sector);
     Bitmap *freeMap = new Bitmap(NUM_SECTORS);
+    
     fsLock->Acquire();
+    
     freeMap->FetchFrom(freeMapFile);
     
     fileH->Deallocate(freeMap);  // Remove data blocks.
     freeMap->Clear(sector);      // Remove header block.
     
     freeMap->WriteBack(freeMapFile);  // Flush to disk.
+    
     fsLock->Release();
+    
     delete fileH;
     delete freeMap;
 }

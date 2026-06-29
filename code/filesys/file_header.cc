@@ -205,14 +205,25 @@ FileHeader::Print(const char *title)
            raw.numBytes);
 
     for (unsigned i = 0; i < raw.numSectors; i++) {
-        printf("%u ", raw.dataSectors[i]);
+        printf("%u ", ByteToSector(i * SECTOR_SIZE));
     }
     printf("\n");
 
-    for (unsigned i = 0, k = 0; i < raw.numSectors; i++) {
-        printf("    contents of block %u:\n", raw.dataSectors[i]);
-        synchDisk->ReadSector(raw.dataSectors[i], data);
-        for (unsigned j = 0; j < SECTOR_SIZE && k < raw.numBytes; j++, k++) {
+    for (unsigned i = 0; i < raw.numSectors; i++) {
+        unsigned sector = ByteToSector(i * SECTOR_SIZE);
+        printf("    contents of block %u:\n", sector);
+        synchDisk->ReadSector(sector, data);
+
+        unsigned bytesToPrint = SECTOR_SIZE;
+
+        if (i == raw.numSectors - 1) {
+            bytesToPrint = raw.numBytes % SECTOR_SIZE;
+            if (bytesToPrint == 0) {
+                bytesToPrint = SECTOR_SIZE;
+            }
+        }
+
+        for (unsigned j = 0; j < bytesToPrint; j++) {
             if (isprint(data[j])) {
                 printf("%c", data[j]);
             } else {

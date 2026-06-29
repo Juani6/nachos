@@ -20,7 +20,7 @@ AddressSpace::InitSwapFile() {
     shadowTable = new ShadowTable[numPages];
     
     char *swapName = CreateSwapName();
-    ASSERT(fileSystem->Create(swapName, numPages * PAGE_SIZE));
+    ASSERT(fileSystem->Create(swapName, 0));
     swapFile = fileSystem->Open(swapName);
     free(swapName);
 }
@@ -238,7 +238,9 @@ AddressSpace::LoadPage(unsigned vpn) {
 AddressSpace::~AddressSpace()
 {   
     unsigned fpn;
-    mMapLock->Acquire();
+        mMapLock->Acquire();
+
+
     for (unsigned i = 0; i < numPages; i++) {
         fpn = pageTable[i].physicalPage;
         if (fpn != (unsigned)-1) {
@@ -251,11 +253,13 @@ AddressSpace::~AddressSpace()
             memoryMap->Clear(fpn);
             #endif
         }
-    mMapLock->Release();
     }
+        mMapLock->Release();
 #ifdef SWAP
+
     char * swapName = CreateSwapName();
-    fileSystem->Remove(swapName);
+    DEBUG('f', "BORRANDO SWAP\n");
+    ASSERT(fileSystem->Remove(swapName));
     delete swapFile;
     free(swapName);
     delete []shadowTable;

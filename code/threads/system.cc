@@ -256,35 +256,21 @@ void
 Cleanup()
 {
     DEBUG('i', "Cleaning up...\n");
-#ifdef FILESYS_NEEDED
-    delete fileSystem;
-#endif
 
-#ifdef FILESYS
-    delete synchDisk;
-    delete fileTable;
-#endif
 
-    delete timer;
-    delete scheduler;
-    delete interrupt;
-
-    delete stats;
-    Thread *t = currentThread;
-    
-#ifdef USER_PROGRAM
+    #ifdef USER_PROGRAM
 
     // Esto lo tenemos que eliminar aca para poder eliminar el addresSpace despues
-    if (t->space != nullptr) {
-        delete t->space;
-        t->space = nullptr;
-        free((char*)t->GetName());
+    if (currentThread->space != nullptr) {
+        delete currentThread->space;
+        currentThread->space = nullptr;
+        free((char*)currentThread->GetName());
     }
 
     for (unsigned i = 0; i < Table<Thread*>::SIZE; i++) {
         if (processTable->HasKey(i)) {
             Thread* th = processTable->Remove(i);
-            if (th != nullptr && th != t) {
+            if (th != nullptr && th != currentThread) {
                 delete th;
             }
         }
@@ -298,13 +284,33 @@ Cleanup()
     delete mMapLock;
     
     delete machine;
-    if (synchConsole != nullptr) {
-        delete synchConsole;
-
-    }
     delete processTable;
     delete pTLock;
-#endif
+    #endif
+    
+    #ifdef FILESYS
+    #endif
+    
+    #ifdef FILESYS_NEEDED
+    delete fileSystem;
+    #endif
+    
+    #ifdef FILESYS
+    delete fileTable;
+    delete synchDisk;
+    #endif
+
+    if (synchConsole != nullptr) {
+        delete synchConsole;
+    }
+    
+    delete timer;
+    delete scheduler;
+    delete interrupt;
+    
+    delete stats;
+    Thread *t = currentThread;
+    
 
     //The thread destructor checks that currentThread != this
     currentThread = NULL;

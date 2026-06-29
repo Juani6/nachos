@@ -293,6 +293,11 @@ static void syscall_SC_EXIT() {
     int exitStatus = machine->ReadRegister(4);
     currentThread->SetExitStatus(exitStatus);
     
+    if (currentThread->space != nullptr) {
+        delete currentThread->space;
+        currentThread->space = nullptr; 
+    }
+
     pTLock->Acquire();
     // Si alive es mas de uno estamos en la shell y hay mas procesos
     // si es uno o menos (rari) es por que es el main. Y cuando termina tenemos
