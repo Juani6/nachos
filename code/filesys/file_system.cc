@@ -655,11 +655,11 @@ FileSystem::ResolvePath(char* path) {
         return {-1,nullptr};
     }
     
-    Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
-    OpenFile* dirFile = new OpenFile(dirSector);
-    dir->FetchFrom(dirFile);
-    
     for (size_t i = 0; i < tokensArr.size() - 1; i++) {
+        Directory* dir = new Directory(1); // fetchFrom pone el valor adecuado
+        OpenFile* dirFile = new OpenFile(dirSector);
+        dir->FetchFrom(dirFile);
+    
 
         if (!strcmp(tokensArr[i], ".")) {
             continue;
@@ -670,6 +670,7 @@ FileSystem::ResolvePath(char* path) {
             int newSector = entry ? entry->sector : dirSector;
             delete dir;
             delete dirFile; 
+            GetDirLock(newSector)->AcquireRead();
             GetDirLock(dirSector)->ReleaseRead();
             dirSector = newSector;
             dirFile = new OpenFile(dirSector);
@@ -810,7 +811,8 @@ FileSystem::CreateDir(const char* _name) {
         }
 
         else if (!fatherDir->Add(name,newDirSector,true)) {
-            success = true; // Si falla aca es por que ya
+            success = false; // Si falla aca es por que ya esta
+            freeMap->Clear(newDirSector);
             fsLock->Release();
         }
 

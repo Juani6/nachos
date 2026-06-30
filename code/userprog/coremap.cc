@@ -43,9 +43,9 @@ CoreMap::FindPage(Thread* owner, uint32_t _vpn) {
 			idx = PickVictim();
 		} while (arr[idx].isPinned);
 		PinPage(idx);
-		//mMapLock->Release();
+		mMapLock->Release();
 		SendToSwap(idx);
-		//mMapLock->Acquire();
+		mMapLock->Acquire();
 	} 
 	else {
 		PinPage(idx);
