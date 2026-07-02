@@ -13,12 +13,6 @@ In order to build userland programs, a cross compiler is needed.  Some
 GNU/Linux distributions already provide one as an installable package.
 In Ubuntu, it's named `gcc-mipsel-linux-gnu`.
 
-# Nachos Project
-
-[Click here to view the complete documentation and index](INDEX.md)
----
-### Note on Documentation
-* Please note that the project documentation is written in **Spanish**.
 
 ## Useful links
 
@@ -33,6 +27,14 @@ In Ubuntu, it's named `gcc-mipsel-linux-gnu`.
 * [Nachos website](http://homes.cs.washington.edu/~tom/nachos/)
 * [The Nachos Instructional Operating System](http://lazowska.cs.washington.edu/nachos.pdf)
 * [A Road Map Through Nachos](https://users.cs.duke.edu/~narten/110/nachos/main/main.html)
+
+### Documentation in this nachos project
+
+* [Click here to view the complete documentation and index](INDEX.md)
+* Please note that the project documentation is written in **Spanish**.
+
+
+
 
 ### Similar projects
 
