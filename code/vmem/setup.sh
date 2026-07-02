@@ -18,4 +18,4 @@ $NACHOS -cp $USERLAND/sort sort
 $NACHOS -cp $USERLAND/cat cat
 $NACHOS -cp $USERLAND/cat.c cat.c
 $NACHOS -cp $USERLAND/cp.c cp.c
-$NACHOS -x shell -m 1024 -rs $RS
+$NACHOS -x shell -m 24 -rs $RS
